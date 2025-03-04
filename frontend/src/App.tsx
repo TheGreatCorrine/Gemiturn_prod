@@ -10,6 +10,7 @@ import ReturnsList from 'pages/ReturnsList';
 import ReturnDetail from 'pages/ReturnDetail';
 import Analytics from 'pages/Analytics';
 import NotFound from 'pages/NotFound';
+import ApiDocumentation from 'pages/ApiDocumentation';
 
 // Components
 import Layout from 'components/Layout';
@@ -83,37 +84,39 @@ const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 2,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 4,
+          borderRadius: 2,
           boxShadow: 'none',
           padding: '6px 16px',
           '&:hover': {
-            boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+            boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
           },
         },
         contained: {
-          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
-          borderRadius: 8,
+          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+          borderRadius: 2,
+          border: '1px solid rgba(0, 0, 0, 0.08)',
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
-          borderRadius: 8,
+          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+          borderRadius: 2,
+          border: '1px solid rgba(0, 0, 0, 0.08)',
         },
       },
     },
@@ -144,6 +147,7 @@ function App() {
           <Route path="returns" element={<ReturnsList />} />
           <Route path="returns/:id" element={<ReturnDetail />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="api-docs" element={<ApiDocumentation />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

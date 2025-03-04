@@ -204,7 +204,8 @@ const ReturnsList: React.FC = () => {
             sx={{ 
               p: 2, 
               borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+              border: '1px solid rgba(0, 0, 0, 0.08)',
               height: '100%'
             }}
           >
@@ -239,7 +240,8 @@ const ReturnsList: React.FC = () => {
             sx={{ 
               p: 2, 
               borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+              border: '1px solid rgba(0, 0, 0, 0.08)',
               height: '100%'
             }}
           >
@@ -274,7 +276,8 @@ const ReturnsList: React.FC = () => {
             sx={{ 
               p: 2, 
               borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+              border: '1px solid rgba(0, 0, 0, 0.08)',
               height: '100%'
             }}
           >
@@ -309,7 +312,8 @@ const ReturnsList: React.FC = () => {
             sx={{ 
               p: 2, 
               borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+              border: '1px solid rgba(0, 0, 0, 0.08)',
               height: '100%'
             }}
           >
@@ -344,15 +348,12 @@ const ReturnsList: React.FC = () => {
         elevation={0} 
         sx={{ 
           borderRadius: 2,
-          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15)',
+          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
           mb: 3
         }}
       >
         <Box sx={{ p: 2 }}>
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 500, mb: 2 }}>
-            Recent Returns
-          </Typography>
-          
           {/* Search and Filter */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} md={2.5}>
