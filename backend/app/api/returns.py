@@ -8,6 +8,7 @@ from app.models.return_item import ReturnItem
 from app.services.gemini_service import GeminiService
 from app.services.storage_service import StorageService
 from app.utils.logger import get_logger
+from app.services.return_history_service import ReturnHistoryService
 
 logger = get_logger(__name__)
 
@@ -56,6 +57,21 @@ status_update_model = api.model('StatusUpdate', {
 # File upload parser
 upload_parser = api.parser()
 upload_parser.add_argument('file', location='files', type=FileStorage, required=True)
+
+# 添加历史记录模型
+return_history_model = api.model('ReturnHistory', {
+    'id': fields.Integer(readonly=True, description='History ID'),
+    'return_item_id': fields.Integer(description='Return item ID'),
+    'status': fields.String(description='Status'),
+    'notes': fields.String(description='Notes'),
+    'created_by': fields.Integer(description='User ID who created the entry'),
+    'created_at': fields.DateTime(description='Creation timestamp'),
+    'user': fields.String(description='Username who created the entry')
+})
+
+history_input = api.model('HistoryInput', {
+    'notes': fields.String(required=True, description='Notes')
+})
 
 @api.route('/')
 class ReturnItemList(Resource):
@@ -125,15 +141,30 @@ class ReturnItemResource(Resource):
         """Update a return item's status"""
         return_item = ReturnItem.query.get_or_404(id)
         data = request.json
+        user_id = get_jwt_identity()
         
+        # 更新状态
+        old_status = return_item.status
         return_item.status = data['status']
         if 'resale_price' in data:
             return_item.resale_price = data['resale_price']
         
         if data['status'] == 'completed':
             return_item.processed_at = db.func.now()
+            return_item.processed_by = user_id
         
         db.session.commit()
+        
+        # 添加历史记录
+        if old_status != return_item.status:
+            history_service = ReturnHistoryService()
+            history_service.add_history_entry(
+                return_id=id,
+                status=return_item.status,
+                notes=f"Status changed from {old_status} to {return_item.status}",
+                created_by=user_id
+            )
+        
         return return_item
     
     @api.doc('delete_return_item')
@@ -302,4 +333,46 @@ class BatchApprove(Resource):
             
         except Exception as e:
             logger.error(f"Error in batch approval: {str(e)}")
-            api.abort(500, f"Error in batch approval: {str(e)}") 
+            api.abort(500, f"Error in batch approval: {str(e)}")
+
+
+@api.route('/<int:id>/history')
+@api.param('id', 'The return item identifier')
+@api.response(404, 'Return item not found')
+class ReturnItemHistory(Resource):
+    @api.doc('get_return_item_history')
+    @api.marshal_list_with(return_history_model)
+    @jwt_required()
+    def get(self, id):
+        """Get history for a return item"""
+        # 确保返回项目存在
+        return_item = ReturnItem.query.get_or_404(id)
+        
+        # 获取历史记录
+        history_service = ReturnHistoryService()
+        history = history_service.get_history_by_return_id(id)
+        
+        return history
+    
+    @api.doc('add_return_item_history')
+    @api.expect(history_input)
+    @api.marshal_with(return_history_model, code=201)
+    @jwt_required()
+    def post(self, id):
+        """Add history entry for a return item"""
+        # 确保返回项目存在
+        return_item = ReturnItem.query.get_or_404(id)
+        
+        data = request.json
+        user_id = get_jwt_identity()
+        
+        # 添加历史记录
+        history_service = ReturnHistoryService()
+        history = history_service.add_history_entry(
+            return_id=id,
+            status=return_item.status,
+            notes=data.get('notes'),
+            created_by=user_id
+        )
+        
+        return history, 201 

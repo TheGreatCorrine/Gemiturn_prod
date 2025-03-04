@@ -2,18 +2,27 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
+from flask import current_app
 
-def get_logger(name, level=logging.INFO):
+def get_logger(name, level=None):
     """
     Create a logger with the given name and level
     
     Args:
         name (str): Logger name
-        level (int): Logging level
+        level (int): Logging level (optional, defaults to app config)
         
     Returns:
         logging.Logger: Configured logger
     """
+    # 如果没有指定级别，尝试从应用配置中获取
+    if level is None:
+        try:
+            from app.config.config import Config
+            level = Config.get_log_level()
+        except ImportError:
+            level = logging.INFO
+    
     logger = logging.getLogger(name)
     logger.setLevel(level)
     

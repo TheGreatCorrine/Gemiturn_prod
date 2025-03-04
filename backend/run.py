@@ -6,7 +6,7 @@ load_dotenv()
 
 # Import app factory
 from app import create_app, db
-from app.models import User, ReturnItem
+from app.models import User, ReturnItem, ReturnHistory, Vendor, ProductCategory
 
 # Create app instance
 app = create_app(os.getenv('FLASK_ENV', 'development'))
@@ -17,7 +17,10 @@ def make_shell_context():
     return {
         'db': db,
         'User': User,
-        'ReturnItem': ReturnItem
+        'ReturnItem': ReturnItem,
+        'ReturnHistory': ReturnHistory,
+        'Vendor': Vendor,
+        'ProductCategory': ProductCategory
     }
 
 if __name__ == '__main__':
