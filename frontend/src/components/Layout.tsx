@@ -49,17 +49,22 @@ const Layout: React.FC = () => {
   
   // Top navigation bar tab value
   const [tabValue, setTabValue] = useState(() => {
-    if (location.pathname === '/' || location.pathname.startsWith('/returns')) return 0;
-    if (location.pathname === '/analytics') return 1;
-    return 0;
+    if (location.pathname === '/') return 0;
+    if (location.pathname.startsWith('/returns')) return 1;
+    if (location.pathname === '/analytics') return 2;
+    return -1; // 不选中任何标签
   });
 
   // 监听路径变化，更新tabValue
   React.useEffect(() => {
-    if (location.pathname === '/' || location.pathname.startsWith('/returns')) {
+    if (location.pathname === '/') {
       setTabValue(0);
-    } else if (location.pathname === '/analytics') {
+    } else if (location.pathname.startsWith('/returns')) {
       setTabValue(1);
+    } else if (location.pathname === '/analytics') {
+      setTabValue(2);
+    } else {
+      setTabValue(-1); // 不选中任何标签
     }
   }, [location.pathname]);
 
@@ -89,14 +94,13 @@ const Layout: React.FC = () => {
     setTabValue(newValue);
     switch (newValue) {
       case 0:
-        // 如果当前在returns页面，保持在returns页面
-        if (location.pathname.startsWith('/returns')) {
-          navigate('/returns');
-        } else {
-          navigate('/');
-        }
+        // 始终导航到仪表盘/概览页面
+        navigate('/');
         break;
       case 1:
+        navigate('/returns');
+        break;
+      case 2:
         navigate('/analytics');
         break;
       default:
@@ -344,6 +348,7 @@ const Layout: React.FC = () => {
             }}
           >
             <Tab label="Overview" />
+            <Tab label="Returns" />
             <Tab label="AI Analysis" />
           </Tabs>
           
