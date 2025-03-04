@@ -4,37 +4,37 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // Pages
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
-import ReturnsList from './pages/ReturnsList';
-import ReturnDetail from './pages/ReturnDetail';
-import Analytics from './pages/Analytics';
-import NotFound from './pages/NotFound';
+import Dashboard from 'pages/Dashboard';
+import Login from 'pages/Login';
+import ReturnsList from 'pages/ReturnsList';
+import ReturnDetail from 'pages/ReturnDetail';
+import Analytics from 'pages/Analytics';
+import NotFound from 'pages/NotFound';
 
 // Components
-import Layout from './components/Layout';
+import Layout from 'components/Layout';
 
 // Context
-import { useAuth } from './context/AuthContext';
+import { useAuth } from 'context/AuthContext';
 
 // Create theme
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1a73e8', // Google Cloud 蓝色
+      main: '#1a73e8', // Google Cloud blue
       light: '#4285f4',
       dark: '#0d47a1',
     },
     secondary: {
-      main: '#34a853', // Google Cloud 绿色
+      main: '#34a853', // Google Cloud green
       light: '#4caf50',
       dark: '#1b5e20',
     },
     error: {
-      main: '#ea4335', // Google Cloud 红色
+      main: '#ea4335', // Google Cloud red
     },
     warning: {
-      main: '#fbbc04', // Google Cloud 黄色
+      main: '#fbbc04', // Google Cloud yellow
     },
     background: {
       default: '#f8f9fa',
@@ -120,7 +120,7 @@ const theme = createTheme({
   },
 });
 
-// 暂时注释掉 ProtectedRoute 组件
+// Temporarily commented out ProtectedRoute component
 // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 //   const { isAuthenticated } = useAuth();
 //   
@@ -138,7 +138,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
-        {/* 直接使用 Layout 组件，不需要 ProtectedRoute */}
+        {/* Using Layout component directly, no need for ProtectedRoute */}
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="returns" element={<ReturnsList />} />

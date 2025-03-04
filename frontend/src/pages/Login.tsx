@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     
     if (!username || !password) {
-      setError('请输入用户名和密码');
+      setError('Please enter username and password');
       return;
     }
     
@@ -37,17 +37,17 @@ const Login: React.FC = () => {
       await login(username, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || '登录失败，请重试。');
+      setError(err.response?.data?.message || 'Login failed, please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 临时登录功能（仅用于演示）
+  // Temporary login function (for demo only)
   const handleDemoLogin = () => {
     setUsername('admin');
     setPassword('admin123');
-    // 模拟点击登录按钮
+    // Simulate clicking the login button
     setTimeout(() => {
       const form = document.getElementById('login-form') as HTMLFormElement;
       if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
@@ -86,7 +86,7 @@ const Login: React.FC = () => {
               required
               fullWidth
               id="username"
-              label="用户名"
+              label="Username"
               name="username"
               autoComplete="username"
               autoFocus
@@ -100,7 +100,7 @@ const Login: React.FC = () => {
               required
               fullWidth
               name="password"
-              label="密码"
+              label="Password"
               type="password"
               id="password"
               autoComplete="current-password"
@@ -123,10 +123,10 @@ const Login: React.FC = () => {
                 }
               }}
             >
-              {isLoading ? '登录中...' : '登录'}
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
             
-            <Divider sx={{ my: 2, color: '#5f6368', fontSize: '0.75rem' }}>或</Divider>
+            <Divider sx={{ my: 2, color: '#5f6368', fontSize: '0.75rem' }}>or</Divider>
             
             <Button
               fullWidth
@@ -143,12 +143,12 @@ const Login: React.FC = () => {
                 }
               }}
             >
-              使用演示账号
+              Use Demo Account
             </Button>
             
             <Box sx={{ mt: 2, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                演示账号: admin / admin123
+                Demo account: admin / admin123
               </Typography>
             </Box>
           </Box>

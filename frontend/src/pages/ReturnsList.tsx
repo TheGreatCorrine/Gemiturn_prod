@@ -30,18 +30,18 @@ import {
   ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 
-// 模拟数据
+// Mock data
 const mockReturns = [
   {
     id: 1,
     order_id: 'RET-20240303-001',
     product_id: 'SW-200',
-    product_name: '智能手表',
-    return_reason: '功能不符合预期',
+    product_name: 'Smart Watch',
+    return_reason: 'Functionality not as expected',
     status: 'processing',
     created_at: '2024-03-03T10:30:00Z',
     original_price: 1299,
-    ai_recommendation: '二次销售',
+    ai_recommendation: 'Resell',
     ai_confidence: 0.92,
     resale_price: 1039
   },
@@ -49,12 +49,12 @@ const mockReturns = [
     id: 2,
     order_id: 'RET-20240303-002',
     product_id: 'AE-100',
-    product_name: '蓝牙耳机',
-    return_reason: '配对问题',
+    product_name: 'Bluetooth Earphones',
+    return_reason: 'Pairing issues',
     status: 'pending',
     created_at: '2024-03-03T11:45:00Z',
     original_price: 499,
-    ai_recommendation: '维修后销售',
+    ai_recommendation: 'Repair and sell',
     ai_confidence: 0.87,
     resale_price: 349
   },
@@ -62,12 +62,12 @@ const mockReturns = [
     id: 3,
     order_id: 'RET-20240303-003',
     product_id: 'KB-750',
-    product_name: '机械键盘',
-    return_reason: '按键不灵敏',
+    product_name: 'Mechanical Keyboard',
+    return_reason: 'Keys not responsive',
     status: 'completed',
     created_at: '2024-03-03T09:15:00Z',
     original_price: 899,
-    ai_recommendation: '退回厂商',
+    ai_recommendation: 'Return to manufacturer',
     ai_confidence: 0.95,
     resale_price: 0
   }
@@ -109,13 +109,13 @@ const ReturnsList: React.FC = () => {
   };
   
   const handleSearch = () => {
-    // 实现搜索逻辑
-    console.log('搜索条件:', { productCategory, returnReason, status, dateRange });
+    // Implement search logic
+    console.log('Search conditions:', { productCategory, returnReason, status, dateRange });
   };
   
   const handleBatchProcess = () => {
-    // 实现批量处理逻辑
-    console.log('批量处理');
+    // Implement batch processing logic
+    console.log('Batch processing');
   };
 
   const getStatusColor = (status: string) => {
@@ -124,25 +124,25 @@ const ReturnsList: React.FC = () => {
         return {
           bg: '#FEF7E0',
           color: '#F29D12',
-          text: '待处理'
+          text: 'Pending'
         };
       case 'processing':
         return {
           bg: '#E3F2FD',
           color: '#2196F3',
-          text: '处理中'
+          text: 'Processing'
         };
       case 'completed':
         return {
           bg: '#E8F5E9',
           color: '#4CAF50',
-          text: '已完成'
+          text: 'Completed'
         };
       default:
         return {
           bg: '#F5F5F5',
           color: '#757575',
-          text: '未知'
+          text: 'Unknown'
         };
     }
   };
@@ -150,19 +150,19 @@ const ReturnsList: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
-        return '待处理';
+        return 'Pending';
       case 'processing':
-        return '处理中';
+        return 'Processing';
       case 'completed':
-        return '已完成';
+        return 'Completed';
       default:
-        return '未知';
+        return 'Unknown';
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN');
+    return date.toLocaleDateString('en-US');
   };
 
   const handleRowClick = (id: number) => {
@@ -171,17 +171,17 @@ const ReturnsList: React.FC = () => {
   
   const getAIRecommendationStyle = (recommendation: string) => {
     switch (recommendation) {
-      case '二次销售':
+      case 'Resell':
         return {
           bg: '#E8F5E9',
           color: '#4CAF50',
         };
-      case '维修后销售':
+      case 'Repair and sell':
         return {
           bg: '#E3F2FD',
           color: '#2196F3',
         };
-      case '退回厂商':
+      case 'Return to manufacturer':
         return {
           bg: '#FFF3E0',
           color: '#FF9800',
@@ -196,7 +196,7 @@ const ReturnsList: React.FC = () => {
 
   return (
     <Box>
-      {/* 统计卡片 */}
+      {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} md={3}>
           <Paper 
@@ -209,7 +209,7 @@ const ReturnsList: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              总退货订单
+              Total Return Orders
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
@@ -244,7 +244,7 @@ const ReturnsList: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              退货金额
+              Return Amount
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
@@ -279,7 +279,7 @@ const ReturnsList: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              价值恢复率
+              Value Recovery Rate
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
@@ -314,11 +314,11 @@ const ReturnsList: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              平均处理时间
+              Average Processing Time
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                1.8天
+                1.8 days
               </Typography>
               <Typography 
                 variant="body2" 
@@ -339,7 +339,7 @@ const ReturnsList: React.FC = () => {
         </Grid>
       </Grid>
       
-      {/* 最近退货 */}
+      {/* Recent Returns */}
       <Paper 
         elevation={0} 
         sx={{ 
@@ -350,79 +350,79 @@ const ReturnsList: React.FC = () => {
       >
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 500, mb: 2 }}>
-            最近退货
+            Recent Returns
           </Typography>
           
-          {/* 搜索和筛选 */}
+          {/* Search and Filter */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} md={2.5}>
               <FormControl fullWidth size="small">
-                <InputLabel id="product-category-label">商品类别</InputLabel>
+                <InputLabel id="product-category-label">Product Category</InputLabel>
                 <Select
                   labelId="product-category-label"
                   value={productCategory}
-                  label="商品类别"
+                  label="Product Category"
                   onChange={handleProductCategoryChange}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="electronics">电子产品</MenuItem>
-                  <MenuItem value="clothing">服装鞋包</MenuItem>
-                  <MenuItem value="home">家居用品</MenuItem>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="electronics">Electronics</MenuItem>
+                  <MenuItem value="clothing">Clothing & Accessories</MenuItem>
+                  <MenuItem value="home">Home Goods</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} md={2.5}>
               <FormControl fullWidth size="small">
-                <InputLabel id="return-reason-label">退货原因</InputLabel>
+                <InputLabel id="return-reason-label">Return Reason</InputLabel>
                 <Select
                   labelId="return-reason-label"
                   value={returnReason}
-                  label="退货原因"
+                  label="Return Reason"
                   onChange={handleReturnReasonChange}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="quality">质量问题</MenuItem>
-                  <MenuItem value="function">功能不符</MenuItem>
-                  <MenuItem value="damage">运输损坏</MenuItem>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="quality">Quality Issues</MenuItem>
+                  <MenuItem value="function">Functionality Issues</MenuItem>
+                  <MenuItem value="damage">Shipping Damage</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} md={2.5}>
               <FormControl fullWidth size="small">
-                <InputLabel id="status-label">处理状态</InputLabel>
+                <InputLabel id="status-label">Status</InputLabel>
                 <Select
                   labelId="status-label"
                   value={status}
-                  label="处理状态"
+                  label="Status"
                   onChange={handleStatusChange}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="pending">待处理</MenuItem>
-                  <MenuItem value="processing">处理中</MenuItem>
-                  <MenuItem value="completed">已完成</MenuItem>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="processing">Processing</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} md={2.5}>
               <FormControl fullWidth size="small">
-                <InputLabel id="date-range-label">日期范围</InputLabel>
+                <InputLabel id="date-range-label">Date Range</InputLabel>
                 <Select
                   labelId="date-range-label"
                   value={dateRange}
-                  label="日期范围"
+                  label="Date Range"
                   onChange={handleDateRangeChange}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="today">今天</MenuItem>
-                  <MenuItem value="week">本周</MenuItem>
-                  <MenuItem value="month">本月</MenuItem>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="today">Today</MenuItem>
+                  <MenuItem value="week">This Week</MenuItem>
+                  <MenuItem value="month">This Month</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -438,7 +438,7 @@ const ReturnsList: React.FC = () => {
                   fontSize: '0.875rem'
                 }}
               >
-                搜索
+                Search
               </Button>
             </Grid>
             
@@ -454,22 +454,22 @@ const ReturnsList: React.FC = () => {
                   fontSize: '0.875rem'
                 }}
               >
-                批量处理
+                Batch Process
               </Button>
             </Grid>
           </Grid>
           
-          {/* 表格 */}
+          {/* Table */}
           <TableContainer>
             <Table sx={{ minWidth: 650 }} size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>订单信息</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>退货原因</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI建议</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>状态</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>金额</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>操作</TableCell>
+                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Order Info</TableCell>
+                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Return Reason</TableCell>
+                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI Recommendation</TableCell>
+                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Amount</TableCell>
+                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -494,7 +494,7 @@ const ReturnsList: React.FC = () => {
                             mr: 1.5
                           }}
                         >
-                          图
+                          Img
                         </Box>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
@@ -512,10 +512,10 @@ const ReturnsList: React.FC = () => {
                         size="small"
                         sx={{ 
                           fontSize: '0.75rem', 
-                          bgcolor: row.return_reason === '功能不符合预期' ? '#FFEBEE' : 
-                                  row.return_reason === '配对问题' ? '#FFF8E1' : '#E0F2F1',
-                          color: row.return_reason === '功能不符合预期' ? '#E53935' : 
-                                row.return_reason === '配对问题' ? '#FF8F00' : '#00897B',
+                          bgcolor: row.return_reason === 'Functionality not as expected' ? '#FFEBEE' : 
+                                  row.return_reason === 'Pairing issues' ? '#FFF8E1' : '#E0F2F1',
+                          color: row.return_reason === 'Functionality not as expected' ? '#E53935' : 
+                                row.return_reason === 'Pairing issues' ? '#FF8F00' : '#00897B',
                         }} 
                       />
                     </TableCell>
@@ -547,12 +547,12 @@ const ReturnsList: React.FC = () => {
                       </Typography>
                       {row.resale_price > 0 && (
                         <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
-                          估计回收: ¥{row.resale_price}
+                          Est. Recovery: ¥{row.resale_price}
                         </Typography>
                       )}
                       {row.resale_price === 0 && (
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          估计回收: ¥0
+                          Est. Recovery: ¥0
                         </Typography>
                       )}
                     </TableCell>
@@ -570,7 +570,7 @@ const ReturnsList: React.FC = () => {
                           color: '#1a73e8',
                         }}
                       >
-                        查看
+                        View
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -579,10 +579,10 @@ const ReturnsList: React.FC = () => {
             </Table>
           </TableContainer>
           
-          {/* 分页 */}
+          {/* Pagination */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-              显示 1-4 / 127 个退货订单
+              Showing 1-4 / 127 return orders
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Button 

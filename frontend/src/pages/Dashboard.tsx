@@ -11,11 +11,11 @@ const Dashboard: React.FC = () => {
   return (
     <Box>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 400 }}>
-        仪表盘
+        Dashboard
       </Typography>
       
       <Grid container spacing={3}>
-        {/* 统计卡片 */}
+        {/* Statistics Cards */}
         <Grid item xs={12} md={3}>
           <Paper 
             elevation={0} 
@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
                 <ScheduleIcon sx={{ color: '#4285f4', fontSize: '1.25rem' }} />
               </Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                待处理退货
+                Pending Returns
               </Typography>
             </Box>
             <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem', mb: 1 }}>
@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
               <TrendingUpIcon sx={{ color: '#34a853', fontSize: '1rem', mr: 0.5 }} />
               <Typography variant="body2" color="#34a853" sx={{ fontSize: '0.75rem' }}>
-                较上周 +8%
+                Up from last week +8%
               </Typography>
             </Box>
           </Paper>
@@ -87,7 +87,7 @@ const Dashboard: React.FC = () => {
                 <TrendingUpIcon sx={{ color: '#ea4335', fontSize: '1.25rem' }} />
               </Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                本月退货
+                Returns This Month
               </Typography>
             </Box>
             <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem', mb: 1 }}>
@@ -96,7 +96,7 @@ const Dashboard: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
               <TrendingDownIcon sx={{ color: '#ea4335', fontSize: '1rem', mr: 0.5 }} />
               <Typography variant="body2" color="#ea4335" sx={{ fontSize: '0.75rem' }}>
-                较上月 +12%
+                Up from last month +12%
               </Typography>
             </Box>
           </Paper>
@@ -130,7 +130,7 @@ const Dashboard: React.FC = () => {
                 <CheckCircleIcon sx={{ color: '#34a853', fontSize: '1.25rem' }} />
               </Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                回收率
+                Recovery Rate
               </Typography>
             </Box>
             <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem', mb: 1 }}>
@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
               <TrendingUpIcon sx={{ color: '#34a853', fontSize: '1rem', mr: 0.5 }} />
               <Typography variant="body2" color="#34a853" sx={{ fontSize: '0.75rem' }}>
-                较上月 +2%
+                Up from last month +2%
               </Typography>
             </Box>
           </Paper>
@@ -173,22 +173,22 @@ const Dashboard: React.FC = () => {
                 <ScheduleIcon sx={{ color: '#fbbc04', fontSize: '1.25rem' }} />
               </Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                平均处理时间
+                Average Processing Time
               </Typography>
             </Box>
             <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem', mb: 1 }}>
-              2.4天
+              2.4 days
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
               <TrendingDownIcon sx={{ color: '#34a853', fontSize: '1rem', mr: 0.5 }} />
               <Typography variant="body2" color="#34a853" sx={{ fontSize: '0.75rem' }}>
-                较上月 -0.5天
+                Down from last month -0.5 days
               </Typography>
             </Box>
           </Paper>
         </Grid>
         
-        {/* 最近退货 */}
+        {/* Recent Returns */}
         <Grid item xs={12}>
           <Card 
             elevation={0} 
@@ -198,7 +198,7 @@ const Dashboard: React.FC = () => {
             }}
           >
             <CardHeader 
-              title="最近退货" 
+              title="Recent Returns" 
               titleTypographyProps={{ 
                 variant: 'h6', 
                 fontSize: '1rem',
@@ -208,13 +208,13 @@ const Dashboard: React.FC = () => {
             <Divider />
             <CardContent>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                这里将显示最近的退货记录。
+                Recent return records will be displayed here.
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         
-        {/* AI分析 */}
+        {/* AI Analysis */}
         <Grid item xs={12}>
           <Card 
             elevation={0} 
@@ -224,7 +224,7 @@ const Dashboard: React.FC = () => {
             }}
           >
             <CardHeader 
-              title="AI分析洞察" 
+              title="AI Analysis Insights" 
               titleTypographyProps={{ 
                 variant: 'h6', 
                 fontSize: '1rem',
@@ -234,7 +234,7 @@ const Dashboard: React.FC = () => {
             <Divider />
             <CardContent>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                这里将显示AI生成的退货分析和洞察。
+                AI-generated return analysis and insights will be displayed here.
               </Typography>
             </CardContent>
           </Card>

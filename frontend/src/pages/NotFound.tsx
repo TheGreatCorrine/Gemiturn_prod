@@ -21,10 +21,10 @@ const NotFound: React.FC = () => {
           404
         </Typography>
         <Typography variant="h4" component="h2" gutterBottom>
-          页面未找到
+          Page Not Found
         </Typography>
         <Typography variant="body1" color="text.secondary" paragraph>
-          您请求的页面不存在或已被移除。
+          The page you requested does not exist or has been removed.
         </Typography>
         <Button 
           variant="contained" 
@@ -32,7 +32,7 @@ const NotFound: React.FC = () => {
           onClick={() => navigate('/')}
           sx={{ mt: 2 }}
         >
-          返回首页
+          Return to Home
         </Button>
       </Box>
     </Container>

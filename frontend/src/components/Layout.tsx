@@ -46,7 +46,7 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 顶部导航栏选项卡值
+  // Top navigation bar tab value
   const [tabValue, setTabValue] = useState(() => {
     if (location.pathname === '/') return 0;
     if (location.pathname === '/analytics') return 1;
@@ -96,25 +96,25 @@ const Layout: React.FC = () => {
   };
 
   const returnMenuItems = [
-    { text: '退货管理', icon: <ReplayIcon />, path: '/returns', active: true, count: null },
-    { text: '待处理', icon: null, path: '/returns?status=pending', count: 127 },
-    { text: '处理中', icon: null, path: '/returns?status=processing', count: 45 },
-    { text: '已完成', icon: null, path: '/returns?status=completed', count: 892 },
-    { text: '问题退货', icon: null, path: '/returns?status=problem', count: 18, isRed: true },
+    { text: 'Returns Management', icon: <ReplayIcon />, path: '/returns', active: true, count: null },
+    { text: 'Pending', icon: null, path: '/returns?status=pending', count: 127 },
+    { text: 'Processing', icon: null, path: '/returns?status=processing', count: 45 },
+    { text: 'Completed', icon: null, path: '/returns?status=completed', count: 892 },
+    { text: 'Problem Returns', icon: null, path: '/returns?status=problem', count: 18, isRed: true },
   ];
 
   const categoryItems = [
-    { text: '商品分类', icon: null, path: '', isHeader: true },
-    { text: '电子产品', icon: null, path: '/returns?category=electronics', count: 487 },
-    { text: '服装鞋包', icon: null, path: '/returns?category=clothing', count: 325 },
-    { text: '家居用品', icon: null, path: '/returns?category=home', count: 203 },
+    { text: 'Product Categories', icon: null, path: '', isHeader: true },
+    { text: 'Electronics', icon: null, path: '/returns?category=electronics', count: 487 },
+    { text: 'Clothing & Accessories', icon: null, path: '/returns?category=clothing', count: 325 },
+    { text: 'Home Goods', icon: null, path: '/returns?category=home', count: 203 },
   ];
 
   const utilityItems = [
-    { text: '常用链接', icon: null, path: '', isHeader: true },
-    { text: 'API文档', icon: <CodeIcon />, path: '/api-docs' },
-    { text: '设置', icon: <SettingsIcon />, path: '/settings' },
-    { text: '帮助中心', icon: <QuestionAnswerIcon />, path: '/help' },
+    { text: 'Useful Links', icon: null, path: '', isHeader: true },
+    { text: 'API Documentation', icon: <CodeIcon />, path: '/api-docs' },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+    { text: 'Help Center', icon: <QuestionAnswerIcon />, path: '/help' },
   ];
 
   const drawer = (
@@ -139,12 +139,12 @@ const Layout: React.FC = () => {
       </Toolbar>
       <Divider />
       
-      {/* 退货管理菜单 */}
+      {/* Returns Management Menu */}
       <List sx={{ px: 1 }}>
         {returnMenuItems.map((item, index) => (
           <ListItem key={item.text} disablePadding sx={{ 
             mb: 0.5,
-            pl: index > 0 ? 2 : 0, // 子菜单缩进
+            pl: index > 0 ? 2 : 0, // Indent submenu
           }}>
             <ListItemButton 
               onClick={() => handleNavigation(item.path)}
@@ -193,7 +193,7 @@ const Layout: React.FC = () => {
       
       <Divider sx={{ my: 1 }} />
       
-      {/* 商品分类 */}
+      {/* Product Categories */}
       <List sx={{ px: 1 }}>
         {categoryItems.map((item, index) => (
           <ListItem key={item.text} disablePadding sx={{ 
@@ -240,7 +240,7 @@ const Layout: React.FC = () => {
       
       <Divider sx={{ my: 1 }} />
       
-      {/* 常用链接 */}
+      {/* Useful Links */}
       <List sx={{ px: 1 }}>
         {utilityItems.map((item, index) => (
           <ListItem key={item.text} disablePadding sx={{ 
@@ -311,7 +311,7 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           
-          {/* 顶部导航栏选项卡 */}
+          {/* Top Navigation Tabs */}
           <Tabs 
             value={tabValue} 
             onChange={handleTabChange}
@@ -333,24 +333,24 @@ const Layout: React.FC = () => {
               }
             }}
           >
-            <Tab label="概览" />
-            <Tab label="AI分析" />
+            <Tab label="Overview" />
+            <Tab label="AI Analysis" />
           </Tabs>
           
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Tooltip title="帮助">
+            <Tooltip title="Help">
               <IconButton sx={{ mx: 0.5 }}>
                 <HelpIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="通知">
+            <Tooltip title="Notifications">
               <IconButton sx={{ mx: 0.5 }}>
                 <Badge badgeContent={3} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
             </Tooltip>
-            <Tooltip title={user?.username || '用户'}>
+            <Tooltip title={user?.username || 'User'}>
               <IconButton 
                 onClick={handleUserMenuOpen}
                 sx={{ ml: 1 }}
@@ -406,7 +406,7 @@ const Layout: React.FC = () => {
                 </Avatar>
                 <Box sx={{ ml: 1 }}>
                   <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                    {user?.username || '用户'}
+                    {user?.username || 'User'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#5f6368' }}>
                     {user?.email || 'user@example.com'}
@@ -418,7 +418,7 @@ const Layout: React.FC = () => {
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                退出登录
+                Logout
               </MenuItem>
             </Menu>
           </Box>
