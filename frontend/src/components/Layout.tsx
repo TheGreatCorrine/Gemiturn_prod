@@ -24,17 +24,17 @@ import {
   Tab
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Replay as ReplayIcon,
-  BarChart as BarChartIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  Help as HelpIcon,
-  Notifications as NotificationsIcon,
-  Code as CodeIcon,
-  QuestionAnswer as QuestionAnswerIcon,
-  Search as SearchIcon
+  MenuOutlined as MenuIcon,
+  DashboardOutlined as DashboardIcon,
+  ReplayOutlined as ReplayIcon,
+  BarChartOutlined as BarChartIcon,
+  SettingsOutlined as SettingsIcon,
+  LogoutOutlined as LogoutIcon,
+  HelpOutline as HelpIcon,
+  NotificationsOutlined as NotificationsIcon,
+  CodeOutlined as CodeIcon,
+  QuestionAnswerOutlined as QuestionAnswerIcon,
+  SearchOutlined as SearchIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -111,7 +111,7 @@ const Layout: React.FC = () => {
   };
 
   const returnMenuItems = [
-    { text: 'Returns Management', icon: <ReplayIcon />, path: '/returns', active: true, count: null },
+    { text: 'Returns Management', icon: <ReplayIcon fontSize="small" />, path: '/returns', active: true, count: null },
     { text: 'Pending', icon: null, path: '/returns?status=pending', count: 127 },
     { text: 'Processing', icon: null, path: '/returns?status=processing', count: 45 },
     { text: 'Completed', icon: null, path: '/returns?status=completed', count: 892 },
