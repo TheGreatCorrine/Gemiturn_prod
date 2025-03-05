@@ -25,7 +25,7 @@ def create_app(config_name="default"):
     
     # Register blueprints
     from app.api import api_bp
-    app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(api_bp, url_prefix='/api')
     
     @app.route('/health')
     def health_check():

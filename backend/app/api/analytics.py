@@ -20,6 +20,16 @@ summary_model = api.model('Summary', {
     'avg_processing_time': fields.Float(description='Average processing time in days')
 })
 
+dashboard_summary_model = api.model('DashboardSummary', {
+    'pending_count': fields.Integer(description='Number of pending returns'),
+    'processing_count': fields.Integer(description='Number of processing returns'),
+    'completed_count': fields.Integer(description='Number of completed returns'),
+    'rejected_count': fields.Integer(description='Number of rejected returns'),
+    'total_count': fields.Integer(description='Total number of returns'),
+    'avg_processing_time': fields.Float(description='Average processing time in days'),
+    'total_refund_amount': fields.Float(description='Total refund amount')
+})
+
 category_stats_model = api.model('CategoryStats', {
     'category': fields.String(description='Product category'),
     'count': fields.Integer(description='Number of returns'),
@@ -81,6 +91,49 @@ class SummaryStats(Resource):
         }
 
 
+@api.route('/dashboard-summary')
+class DashboardSummary(Resource):
+    @api.doc('get_dashboard_summary')
+    @api.marshal_with(dashboard_summary_model)
+    def get(self):
+        """获取仪表板摘要数据"""
+        # 各状态计数
+        pending_count = ReturnItem.query.filter_by(status='pending').count()
+        processing_count = ReturnItem.query.filter_by(status='processing').count()
+        completed_count = ReturnItem.query.filter_by(status='completed').count()
+        rejected_count = ReturnItem.query.filter_by(status='rejected').count()
+        total_count = ReturnItem.query.count()
+        
+        # 平均处理时间
+        completed_items = ReturnItem.query.filter(
+            ReturnItem.status == 'completed',
+            ReturnItem.processed_at.isnot(None)
+        ).all()
+        
+        if completed_items:
+            total_days = sum(
+                (item.processed_at - item.created_at).total_seconds() / 86400
+                for item in completed_items if item.processed_at
+            )
+            avg_processing_time = total_days / len(completed_items)
+        else:
+            avg_processing_time = 0
+        
+        # 总退款金额
+        total_refund_result = db.session.query(func.sum(ReturnItem.refund_amount)).scalar()
+        total_refund_amount = total_refund_result if total_refund_result else 0
+        
+        return {
+            'pending_count': pending_count,
+            'processing_count': processing_count,
+            'completed_count': completed_count,
+            'rejected_count': rejected_count,
+            'total_count': total_count,
+            'avg_processing_time': avg_processing_time,
+            'total_refund_amount': total_refund_amount
+        }
+
+
 @api.route('/categories')
 class CategoryStats(Resource):
     @api.doc('get_category_stats')
@@ -90,19 +143,26 @@ class CategoryStats(Resource):
         """Get return statistics by product category"""
         # Get category counts
         category_counts = db.session.query(
-            ReturnItem.product_category,
+            ReturnItem.product_category_id,
             func.count(ReturnItem.id).label('count')
-        ).group_by(ReturnItem.product_category).all()
+        ).group_by(ReturnItem.product_category_id).all()
         
         # Calculate total
         total_returns = ReturnItem.query.count()
         
         # Format results
         results = []
-        for category, count in category_counts:
+        for category_id, count in category_counts:
+            if category_id:
+                from app.models.product_category import ProductCategory
+                category = ProductCategory.query.get(category_id)
+                category_name = category.name if category else "Unknown"
+            else:
+                category_name = "Uncategorized"
+                
             percentage = (count / total_returns * 100) if total_returns > 0 else 0
             results.append({
-                'category': category,
+                'category': category_name,
                 'count': count,
                 'percentage': percentage
             })

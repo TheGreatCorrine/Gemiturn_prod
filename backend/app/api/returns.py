@@ -149,7 +149,7 @@ class ReturnItemResource(Resource):
         if 'resale_price' in data:
             return_item.resale_price = data['resale_price']
         
-        if data['status'] == 'completed':
+        if data['status'] in ['completed', 'rejected']:
             return_item.processed_at = db.func.now()
             return_item.processed_by = user_id
         

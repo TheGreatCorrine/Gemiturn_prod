@@ -1,5 +1,11 @@
 import os
+import argparse
 from dotenv import load_dotenv
+
+# 解析命令行参数
+parser = argparse.ArgumentParser(description='启动Gemiturn后端服务')
+parser.add_argument('--port', type=int, default=5000, help='服务端口号')
+args = parser.parse_args()
 
 # Load environment variables
 load_dotenv()
@@ -24,4 +30,4 @@ def make_shell_context():
     }
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000))) 
+    app.run(host='0.0.0.0', port=args.port) 

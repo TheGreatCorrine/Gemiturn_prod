@@ -21,7 +21,8 @@ import {
   MenuItem,
   Badge,
   Tabs,
-  Tab
+  Tab,
+  CircularProgress
 } from '@mui/material';
 import {
   MenuOutlined as MenuIcon,
@@ -37,8 +38,19 @@ import {
   SearchOutlined as SearchIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+import { analyticsAPI } from '../services/api';
 
 const drawerWidth = 220;
+
+interface SummaryData {
+  pending_count: number;
+  processing_count: number;
+  completed_count: number;
+  rejected_count: number;
+  total_count: number;
+  avg_processing_time: number;
+  total_refund_amount: number;
+}
 
 const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -46,6 +58,16 @@ const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    pending_count: 0,
+    processing_count: 0,
+    completed_count: 0,
+    rejected_count: 0,
+    total_count: 0,
+    avg_processing_time: 0,
+    total_refund_amount: 0
+  });
+  const [loading, setLoading] = useState<boolean>(true);
   
   // Top navigation bar tab value
   const [tabValue, setTabValue] = useState(() => {
@@ -54,6 +76,33 @@ const Layout: React.FC = () => {
     if (location.pathname === '/analytics') return 2;
     return -1; // 不选中任何标签
   });
+
+  // Fetch dashboard data
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const response = await analyticsAPI.getSummary();
+      setSummaryData(response.data);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      // Keep default values
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch data when component mounts
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Refresh data every 60 seconds
+    const intervalId = setInterval(() => {
+      fetchDashboardData();
+    }, 60000);
+    
+    // Clean up timer
+    return () => clearInterval(intervalId);
+  }, []);
 
   // 监听路径变化，更新tabValue
   React.useEffect(() => {
@@ -116,17 +165,17 @@ const Layout: React.FC = () => {
 
   const returnMenuItems = [
     { text: 'Returns Management', icon: <ReplayIcon fontSize="small" />, path: '/returns', active: true, count: null },
-    { text: 'Pending', icon: null, path: '/returns?status=pending', count: 127 },
-    { text: 'Processing', icon: null, path: '/returns?status=processing', count: 45 },
-    { text: 'Completed', icon: null, path: '/returns?status=completed', count: 892 },
-    { text: 'Problem Returns', icon: null, path: '/returns?status=problem', count: 18, isRed: true },
+    { text: 'Pending', icon: null, path: '/returns?status=pending', count: summaryData.pending_count },
+    { text: 'Processing', icon: null, path: '/returns?status=processing', count: summaryData.processing_count },
+    { text: 'Completed', icon: null, path: '/returns?status=completed', count: summaryData.completed_count },
+    { text: 'Rejected', icon: null, path: '/returns?status=rejected', count: summaryData.rejected_count, isRed: true },
   ];
 
   const categoryItems = [
     { text: 'Product Categories', icon: null, path: '', isHeader: true },
-    { text: 'Electronics', icon: null, path: '/returns?category=electronics', count: 487 },
-    { text: 'Clothing & Accessories', icon: null, path: '/returns?category=clothing', count: 325 },
-    { text: 'Home Goods', icon: null, path: '/returns?category=home', count: 203 },
+    { text: 'Electronics', icon: null, path: '/returns?category=electronics', count: null },
+    { text: 'Clothing & Accessories', icon: null, path: '/returns?category=clothing', count: null },
+    { text: 'Home Goods', icon: null, path: '/returns?category=home', count: null },
   ];
 
   const utilityItems = [
@@ -173,16 +222,20 @@ const Layout: React.FC = () => {
                 }} 
               />
               {item.count !== null && (
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.75rem', 
-                    color: item.isRed ? '#ea4335' : '#5f6368',
-                    fontWeight: item.isRed ? 500 : 400
-                  }}
-                >
-                  {item.count}
-                </Typography>
+                loading ? (
+                  <CircularProgress size={16} sx={{ color: item.isRed ? '#ea4335' : '#5f6368' }} />
+                ) : (
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontSize: '0.75rem', 
+                      color: item.isRed ? '#ea4335' : '#5f6368',
+                      fontWeight: item.isRed ? 500 : 400
+                    }}
+                  >
+                    {item.count}
+                  </Typography>
+                )
               )}
             </ListItemButton>
           </ListItem>
@@ -230,9 +283,13 @@ const Layout: React.FC = () => {
                   }} 
                 />
                 {item.count !== null && (
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#5f6368' }}>
-                    {item.count}
-                  </Typography>
+                  loading ? (
+                    <CircularProgress size={16} sx={{ color: '#5f6368' }} />
+                  ) : (
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#5f6368' }}>
+                      {item.count}
+                    </Typography>
+                  )
                 )}
               </ListItemButton>
             )}
