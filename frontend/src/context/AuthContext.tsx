@@ -166,8 +166,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (process.env.NODE_ENV === 'development' && username === 'admin' && password === 'admin123') {
           console.warn('Falling back to mock login in development');
           
-          // 使用正确格式的JWT令牌（确保sub是字符串类型）
-          const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNjA5NDU5MjAwLCJleHAiOjE3MDk0NTkyMDAsInR5cGUiOiJhY2Nlc3MiLCJmcmVzaCI6dHJ1ZSwianRpIjoiYWJjMTIzIn0.Ks-eNFu1YS2ZCyAHLCY-mhHxJOsh6C_0Ita_JpJkYkM';
+          // 使用与后端相同格式的JWT令牌
+          // 这个token包含了所有必要的字段：sub, exp, iat, type, fresh, jti
+          const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0MTM4NTI2NywianRpIjoiZTI1ZGI0N2UtMzRlMS00YzM4LWE5NDgtYTc5YzFmNWQyZGIwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjEiLCJuYmYiOjE3NDEzODUyNjcsImV4cCI6MTc0MTM4ODg2Nywicm9sZSI6ImFkbWluIn0.Gal0zxUBPf1ayN28H3J63r7ewgbHazGhwsylQBjuy0M';
+          
+          // 解析token payload进行验证
+          try {
+            const tokenParts = mockToken.split('.');
+            const payload = JSON.parse(atob(tokenParts[1]));
+            console.log('Mock token payload:', payload);
+          } catch (e) {
+            console.error('Error decoding mock token:', e);
+          }
           
           // 保存令牌
           localStorage.setItem('token', mockToken);

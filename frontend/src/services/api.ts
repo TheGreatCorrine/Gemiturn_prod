@@ -46,6 +46,12 @@ apiClient.interceptors.request.use(
 // Add response interceptor for debugging
 apiClient.interceptors.response.use(
   (response) => {
+    // 添加成功请求日志
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`API Success: ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      console.log('Status:', response.status);
+      console.log('Headers:', response.headers);
+    }
     return response;
   },
   (error) => {
@@ -56,6 +62,33 @@ apiClient.interceptors.response.use(
         console.error('Status:', error.response.status);
         console.error('Data:', error.response.data);
         console.error('Headers:', error.response.headers);
+        console.error('Request details:', {
+          method: error.config.method,
+          url: error.config.url,
+          baseURL: error.config.baseURL,
+          params: error.config.params,
+          data: error.config.data,
+          headers: error.config.headers
+        });
+        
+        // 特别处理422错误
+        if (error.response.status === 422) {
+          console.error('422 Validation Error Details:');
+          console.error('- Request Params:', error.config.params);
+          console.error('- Request Data:', error.config.data);
+          console.error('- Response Data:', error.response.data);
+          
+          // 尝试解析详细的错误信息
+          try {
+            if (typeof error.response.data === 'object') {
+              Object.entries(error.response.data).forEach(([key, value]) => {
+                console.error(`- Field ${key}:`, value);
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing validation details:', e);
+          }
+        }
         
         // Handle token issues
         if (error.response.status === 401 || 
@@ -84,8 +117,20 @@ export const authAPI = {
 
 // 退货管理API
 export const returnsAPI = {
-  getReturns: (params?: any) => 
-    apiClient.get('/returns/', { params }),
+  getReturns: (params?: any) => {
+    console.log('Calling getReturns API with params:', params);
+    console.log('Current baseURL:', API_URL);
+    console.log('Full URL:', `${API_URL}/returns/`);
+    
+    // 确保URL末尾有斜杠
+    return apiClient.get('/returns/', { 
+      params,
+      // 添加超时设置
+      timeout: 10000,
+      // 禁用重定向
+      maxRedirects: 0
+    });
+  },
   
   getReturnById: (id: number) => 
     apiClient.get(`/returns/${id}/`),
