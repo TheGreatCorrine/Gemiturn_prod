@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -21,7 +21,8 @@ import {
   Select,
   FormControl,
   InputLabel,
-  SelectChangeEvent
+  SelectChangeEvent,
+  CircularProgress
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -29,49 +30,8 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
-
-// Mock data
-const mockReturns = [
-  {
-    id: 1,
-    order_id: 'RET-20240303-001',
-    product_id: 'SW-200',
-    product_name: 'Smart Watch',
-    return_reason: 'Functionality not as expected',
-    status: 'processing',
-    created_at: '2024-03-03T10:30:00Z',
-    original_price: 1299,
-    ai_recommendation: 'Resell',
-    ai_confidence: 0.92,
-    resale_price: 1039
-  },
-  {
-    id: 2,
-    order_id: 'RET-20240303-002',
-    product_id: 'AE-100',
-    product_name: 'Bluetooth Earphones',
-    return_reason: 'Pairing issues',
-    status: 'pending',
-    created_at: '2024-03-03T11:45:00Z',
-    original_price: 499,
-    ai_recommendation: 'Repair and sell',
-    ai_confidence: 0.87,
-    resale_price: 349
-  },
-  {
-    id: 3,
-    order_id: 'RET-20240303-003',
-    product_id: 'KB-750',
-    product_name: 'Mechanical Keyboard',
-    return_reason: 'Keys not responsive',
-    status: 'completed',
-    created_at: '2024-03-03T09:15:00Z',
-    original_price: 899,
-    ai_recommendation: 'Return to manufacturer',
-    ai_confidence: 0.95,
-    resale_price: 0
-  }
-];
+import { returnsAPI, analyticsAPI } from '../services/api';
+import axios from 'axios';
 
 const ReturnsList: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -80,8 +40,151 @@ const ReturnsList: React.FC = () => {
   const [returnReason, setReturnReason] = useState('');
   const [status, setStatus] = useState('');
   const [dateRange, setDateRange] = useState('');
+  const [returns, setReturns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    total_count: 0,
+    pending_count: 0,
+    processing_count: 0,
+    completed_count: 0,
+    avg_processing_time: 0
+  });
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // 检查是否有token
+    const token = localStorage.getItem('token');
+    if (token) {
+      console.log('Token found in localStorage:', token.substring(0, 20) + '...');
+    } else {
+      console.error('No token found in localStorage!');
+      setError('未找到认证令牌，请先登录');
+      return;
+    }
+    
+    fetchReturns();
+    fetchStats();
+  }, []);
+
+  const fetchReturns = async () => {
+    setLoading(true);
+    setError('');
+    
+    // Add debug information
+    console.log('Fetching returns with filters:', { productCategory, returnReason, status, dateRange });
+    
+    try {
+      // Re-verify auth state before making the request
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found in localStorage');
+        setError('Authentication token missing. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      // Check token format
+      if (!token.includes('.') || token.split('.').length !== 3) {
+        console.error('Invalid token format:', token);
+        setError('Invalid authentication token format. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      // Always explicitly set the Authorization header before each request
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('Request with Authorization header:', axios.defaults.headers.common['Authorization']);
+      
+      // Build the query parameters
+      const params = {
+        page: page,
+        limit: rowsPerPage,
+        status: status,
+        category: productCategory,
+        reason: returnReason,
+        start_date: dateRange ? new Date(dateRange).toISOString().split('T')[0] : undefined,
+        end_date: dateRange ? new Date(dateRange).toISOString().split('T')[0] : undefined,
+        search: ''
+      };
+      
+      console.log('API params:', params);
+      
+      // Make the API call with a timeout
+      const response = await returnsAPI.getReturns(params);
+      console.log('Returns API response:', response);
+      
+      // Process the response data
+      if (Array.isArray(response.data)) {
+        setReturns(response.data);
+        setStats({
+          total_count: response.data.length,
+          pending_count: response.data.filter((r: any) => r.status === 'pending').length,
+          processing_count: response.data.filter((r: any) => r.status === 'processing').length,
+          completed_count: response.data.filter((r: any) => r.status === 'completed').length,
+          avg_processing_time: 0 // Assuming avg_processing_time is not provided in the response
+        });
+      } else if (response.data && typeof response.data === 'object') {
+        if (Array.isArray(response.data.items)) {
+          setReturns(response.data.items);
+          setStats({
+            total_count: response.data.total || response.data.items.length,
+            pending_count: response.data.items.filter((r: any) => r.status === 'pending').length,
+            processing_count: response.data.items.filter((r: any) => r.status === 'processing').length,
+            completed_count: response.data.items.filter((r: any) => r.status === 'completed').length,
+            avg_processing_time: 0 // Assuming avg_processing_time is not provided in the response
+          });
+        } else {
+          console.error('Unexpected response format:', response.data);
+          setError('返回数据格式不正确');
+        }
+      } else {
+        console.error('Unexpected response format:', response.data);
+        setError('返回数据格式不正确');
+      }
+    } catch (err: any) {
+      console.error('Error fetching returns:', err);
+      
+      // 详细记录错误信息
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+        console.error('Error status:', err.response.status);
+        console.error('Error headers:', err.response.headers);
+        setError(`加载退货数据失败: ${err.response.data.message || err.response.data.msg || err.response.statusText || err.message}`);
+      } else if (err.request) {
+        console.error('Error request:', err.request);
+        setError(`加载退货数据失败: 服务器未响应`);
+      } else {
+        console.error('Error message:', err.message);
+        setError(`加载退货数据失败: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      console.log('Fetching stats data...');
+      const response = await analyticsAPI.getSummary();
+      console.log('Stats API Response:', response);
+      
+      if (response.data) {
+        setStats(response.data);
+      } else {
+        console.error('Unexpected stats API response format:', response);
+      }
+    } catch (err: any) {
+      console.error('Error fetching stats:', err);
+      
+      // 显示更详细的错误信息
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+        console.error('Status:', err.response.status);
+      }
+    }
+  };
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -109,12 +212,10 @@ const ReturnsList: React.FC = () => {
   };
   
   const handleSearch = () => {
-    // Implement search logic
     console.log('Search conditions:', { productCategory, returnReason, status, dateRange });
   };
   
   const handleBatchProcess = () => {
-    // Implement batch processing logic
     console.log('Batch processing');
   };
 
@@ -214,7 +315,7 @@ const ReturnsList: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                1,082
+                {stats.total_count}
               </Typography>
               <Typography 
                 variant="body2" 
@@ -246,25 +347,25 @@ const ReturnsList: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              Return Amount
+              Pending Returns
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                ¥245,320
+                {stats.pending_count}
               </Typography>
               <Typography 
                 variant="body2" 
                 sx={{ 
                   ml: 1, 
                   mb: 0.5, 
-                  color: '#F44336',
+                  color: '#F29D12',
                   fontSize: '0.75rem',
                   display: 'flex',
                   alignItems: 'center'
                 }}
               >
                 <ArrowUpwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
-                7.8%
+                8.1%
               </Typography>
             </Box>
           </Paper>
@@ -282,25 +383,25 @@ const ReturnsList: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              Value Recovery Rate
+              Processing Returns
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                87.3%
+                {stats.processing_count}
               </Typography>
               <Typography 
                 variant="body2" 
                 sx={{ 
                   ml: 1, 
                   mb: 0.5, 
-                  color: '#4CAF50',
+                  color: '#2196F3',
                   fontSize: '0.75rem',
                   display: 'flex',
                   alignItems: 'center'
                 }}
               >
-                <ArrowUpwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
-                2.1%
+                <ArrowDownwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
+                3.2%
               </Typography>
             </Box>
           </Paper>
@@ -322,7 +423,7 @@ const ReturnsList: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                1.8 days
+                {stats.avg_processing_time.toFixed(1)} days
               </Typography>
               <Typography 
                 variant="body2" 
@@ -461,129 +562,136 @@ const ReturnsList: React.FC = () => {
           </Grid>
           
           {/* Table */}
-          <TableContainer>
-            <Table sx={{ minWidth: 650 }} size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Order Info</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Return Reason</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI Recommendation</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Amount</TableCell>
-                  <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {mockReturns.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    hover
-                    onClick={() => handleRowClick(row.id)}
-                    sx={{ '&:last-child td, &:last-child th': { border: 0 }, cursor: 'pointer' }}
-                  >
-                    <TableCell sx={{ fontSize: '0.8125rem' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Box 
-                          sx={{ 
-                            width: 40, 
-                            height: 40, 
-                            bgcolor: '#f5f5f5', 
-                            borderRadius: 1, 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            mr: 1.5
-                          }}
-                        >
-                          Img
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
-                            {row.product_name} {row.product_id}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                            {row.order_id}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8125rem' }}>
-                      <Chip 
-                        label={row.return_reason} 
-                        size="small"
-                        sx={{ 
-                          fontSize: '0.75rem', 
-                          bgcolor: row.return_reason === 'Functionality not as expected' ? '#FFEBEE' : 
-                                  row.return_reason === 'Pairing issues' ? '#FFF8E1' : '#E0F2F1',
-                          color: row.return_reason === 'Functionality not as expected' ? '#E53935' : 
-                                row.return_reason === 'Pairing issues' ? '#FF8F00' : '#00897B',
-                        }} 
-                      />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8125rem' }}>
-                      <Chip 
-                        label={`${row.ai_recommendation} (${Math.round(row.ai_confidence * 100)}%)`} 
-                        size="small"
-                        sx={{ 
-                          fontSize: '0.75rem', 
-                          bgcolor: getAIRecommendationStyle(row.ai_recommendation).bg,
-                          color: getAIRecommendationStyle(row.ai_recommendation).color,
-                        }} 
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={getStatusText(row.status)} 
-                        size="small"
-                        sx={{ 
-                          fontSize: '0.75rem', 
-                          bgcolor: getStatusColor(row.status).bg,
-                          color: getStatusColor(row.status).color,
-                        }} 
-                      />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8125rem' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
-                        ¥{row.original_price}
-                      </Typography>
-                      {row.resale_price > 0 && (
-                        <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
-                          Est. Recovery: ¥{row.resale_price}
-                        </Typography>
-                      )}
-                      {row.resale_price === 0 && (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Est. Recovery: ¥0
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="outlined" 
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowClick(row.id);
-                        }}
-                        sx={{ 
-                          fontSize: '0.75rem',
-                          borderColor: '#1a73e8',
-                          color: '#1a73e8',
-                        }}
-                      >
-                        View
-                      </Button>
-                    </TableCell>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Box sx={{ p: 2, textAlign: 'center', color: 'error.main' }}>
+              {error}
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table sx={{ minWidth: 650 }} size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Order Info</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Return Reason</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI Recommendation</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Action</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {returns.length > 0 ? (
+                    returns.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        hover
+                        onClick={() => handleRowClick(row.id)}
+                        sx={{ '&:last-child td, &:last-child th': { border: 0 }, cursor: 'pointer' }}
+                      >
+                        <TableCell sx={{ fontSize: '0.8125rem' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box 
+                              sx={{ 
+                                width: 40, 
+                                height: 40, 
+                                bgcolor: '#f5f5f5', 
+                                borderRadius: 1, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                mr: 1.5
+                              }}
+                            >
+                              Img
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
+                                {row.product_name} {row.product_id}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                {row.order_id}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.8125rem' }}>
+                          {row.return_reason}
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={row.ai_recommendation || 'Not analyzed'}
+                            size="small"
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              bgcolor: row.ai_recommendation ? getAIRecommendationStyle(row.ai_recommendation).bg : '#f5f5f5',
+                              color: row.ai_recommendation ? getAIRecommendationStyle(row.ai_recommendation).color : '#757575',
+                            }}
+                          />
+                          {row.ai_confidence && (
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                              Confidence: {(row.ai_confidence * 100).toFixed(0)}%
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={getStatusText(row.status)}
+                            size="small"
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              bgcolor: getStatusColor(row.status).bg,
+                              color: getStatusColor(row.status).color,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.8125rem' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
+                            ${row.original_price?.toFixed(2) || '0.00'}
+                          </Typography>
+                          {row.resale_price > 0 && (
+                            <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
+                              Resale: ${row.resale_price.toFixed(2)}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="text" 
+                            size="small"
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              color: '#1a73e8',
+                              minWidth: 'auto'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRowClick(row.id);
+                            }}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 3 }}>
+                        No return items found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
           
-          {/* Pagination */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-              Showing 1-4 / 127 return orders
+              Showing {returns.length > 0 ? `1-${returns.length}` : '0'} / {stats.total_count} return orders
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Button 

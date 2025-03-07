@@ -2,10 +2,12 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { AuthProvider } from './context/AuthContext';
 
 // Pages
 import Dashboard from 'pages/Dashboard';
 import Login from 'pages/Login';
+import Signup from 'pages/Signup';
 import ReturnsList from 'pages/ReturnsList';
 import ReturnDetail from 'pages/ReturnDetail';
 import Analytics from 'pages/Analytics';
@@ -134,25 +136,71 @@ const theme = createTheme({
 //   return <>{children}</>;
 // };
 
+// Development JWT troubleshooting tools
+const JwtDebugTools = () => {
+  if (process.env.NODE_ENV !== 'development') return null;
+  
+  const clearTokenAndReload = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
+  
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 10,
+      right: 10,
+      zIndex: 9999,
+      padding: '10px',
+      background: '#f8f9fa',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+    }}>
+      <div style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '5px'}}>
+        DEV TOOLS
+      </div>
+      <button 
+        onClick={clearTokenAndReload}
+        style={{
+          padding: '5px 10px',
+          backgroundColor: '#dc3545',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '12px'
+        }}
+      >
+        Clear Token & Reload
+      </button>
+    </div>
+  );
+};
+
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        {/* Using Layout component directly, no need for ProtectedRoute */}
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="returns" element={<ReturnsList />} />
-          <Route path="returns/:id" element={<ReturnDetail />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="api-docs" element={<ApiDocumentation />} />
-        </Route>
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* Using Layout component directly, no need for ProtectedRoute */}
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="returns" element={<ReturnsList />} />
+            <Route path="returns/:id" element={<ReturnDetail />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="api-docs" element={<ApiDocumentation />} />
+          </Route>
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ThemeProvider>
+      <JwtDebugTools />
+    </AuthProvider>
   );
 }
 

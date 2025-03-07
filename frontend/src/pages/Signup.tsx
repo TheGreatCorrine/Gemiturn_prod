@@ -11,61 +11,67 @@ import {
   Link,
   Divider
 } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/api';
 
-const Login: React.FC = () => {
+const Signup: React.FC = () => {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuth();
   const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
-      setError('Please enter username and password');
+    // Validate inputs
+    if (!username || !email || !password || !confirmPassword) {
+      setError('Please fill all required fields');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
     
     setIsLoading(true);
     setError('');
+    setSuccess('');
     
     try {
-      await login(username, password);
-      navigate('/');
+      // Call the register API
+      const response = await authAPI.register({
+        username,
+        email,
+        password
+      });
+      
+      console.log('Registration successful:', response.data);
+      setSuccess('Registration successful! You can now login with your credentials.');
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (err: any) {
-      console.error('Login error details:', err);
+      console.error('Registration error:', err);
       
-      let errorMessage = 'Login failed. Please try again.';
+      let errorMessage = 'Registration failed. Please try again.';
       
-      // More specific error handling
       if (err.response) {
         console.error('Error response:', err.response.data);
         errorMessage = err.response.data.message || 
-                      'Authentication failed. Please check your credentials.';
-      } else if (err.message && err.message.includes('token')) {
-        errorMessage = 'Authentication token error. Please contact support.';
+                      'Registration failed. This username or email may already be taken.';
       }
       
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Temporary login function (for demo only)
-  const handleDemoLogin = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    // Simulate a form submission to trigger the actual login
-    setTimeout(() => {
-      document.getElementById('login-form')?.dispatchEvent(
-        new Event('submit', { cancelable: true, bubbles: true })
-      );
-    }, 100);
   };
   
   return (
@@ -82,7 +88,7 @@ const Login: React.FC = () => {
         }}
       >
         <Typography component="h1" variant="h5">
-          Login to Gemiturn
+          Create an Account
         </Typography>
         
         {error && (
@@ -91,7 +97,13 @@ const Login: React.FC = () => {
           </Alert>
         )}
         
-        <Box component="form" id="login-form" onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
+        {success && (
+          <Alert severity="success" sx={{ width: '100%', mt: 2 }}>
+            {success}
+          </Alert>
+        )}
+        
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
           <TextField
             margin="normal"
             required
@@ -110,13 +122,40 @@ const Login: React.FC = () => {
             margin="normal"
             required
             fullWidth
+            id="email"
+            label="Email Address"
+            name="email"
+            autoComplete="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            size="small"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
             name="password"
             label="Password"
             type="password"
             id="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            size="small"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="confirmPassword"
+            label="Confirm Password"
+            type="password"
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             size="small"
             sx={{ mb: 3 }}
           />
@@ -134,41 +173,15 @@ const Login: React.FC = () => {
               }
             }}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
           </Button>
           
           <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 2 }}>
-              Don't have an account?{' '}
-              <Link component={RouterLink} to="/signup" sx={{ color: '#1a73e8' }}>
-                Sign Up
+            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+              Already have an account?{' '}
+              <Link component={RouterLink} to="/login" sx={{ color: '#1a73e8' }}>
+                Login
               </Link>
-            </Typography>
-          </Box>
-          
-          <Divider sx={{ my: 2, color: '#5f6368', fontSize: '0.75rem' }}>or</Divider>
-          
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleDemoLogin}
-            sx={{ 
-              py: 1, 
-              fontSize: '0.875rem',
-              borderColor: '#dadce0',
-              color: '#1a73e8',
-              '&:hover': {
-                borderColor: '#1a73e8',
-                backgroundColor: 'rgba(26, 115, 232, 0.04)'
-              }
-            }}
-          >
-            Use Demo Account
-          </Button>
-          
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-              Demo account: admin / admin123
             </Typography>
           </Box>
         </Box>
@@ -177,4 +190,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login; 
+export default Signup; 

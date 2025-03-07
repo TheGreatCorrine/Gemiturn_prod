@@ -15,6 +15,25 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
+      // Log token info in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`API Request to ${config.url}:`);
+        console.log(`- Authorization: Bearer ${token.substring(0, 10)}...`);
+        
+        try {
+          // Validate token format
+          const parts = token.split('.');
+          if (parts.length !== 3) {
+            console.error('WARNING: Token does not have required 3 parts!');
+          } else {
+            const payload = JSON.parse(atob(parts[1]));
+            console.log('- Token payload:', payload);
+          }
+        } catch (e) {
+          console.error('Error parsing token:', e);
+        }
+      }
+      
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -24,84 +43,91 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Add response interceptor for debugging
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('API Error:', error.message);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Data:', error.response.data);
+        console.error('Headers:', error.response.headers);
+        
+        // Handle token issues
+        if (error.response.status === 401 || 
+            (error.response.status === 422 && 
+             error.response.data.message && 
+             error.response.data.message.includes('token'))) {
+          console.error('JWT token issue detected, try clearing localStorage and logging in again');
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // 认证相关API
 export const authAPI = {
   login: (username: string, password: string) => 
-    apiClient.post('/auth/login', { username, password }),
+    apiClient.post('/auth/login/', { username, password }),
   
   register: (userData: any) => 
-    apiClient.post('/auth/register', userData),
+    apiClient.post('/auth/register/', userData),
   
-  getCurrentUser: () => 
-    apiClient.get('/auth/me'),
+  getMe: () => 
+    apiClient.get('/auth/me/'),
 };
 
 // 退货管理API
 export const returnsAPI = {
   getReturns: (params?: any) => 
-    apiClient.get('/returns', { params }),
+    apiClient.get('/returns/', { params }),
   
   getReturnById: (id: number) => 
-    apiClient.get(`/returns/${id}`),
+    apiClient.get(`/returns/${id}/`),
   
   createReturn: (returnData: any) => 
-    apiClient.post('/returns', returnData),
+    apiClient.post('/returns/', returnData),
   
   updateReturn: (id: number, returnData: any) => 
-    apiClient.patch(`/returns/${id}`, returnData),
+    apiClient.patch(`/returns/${id}/`, returnData),
   
   deleteReturn: (id: number) => 
-    apiClient.delete(`/returns/${id}`),
+    apiClient.delete(`/returns/${id}/`),
   
   analyzeReturn: (id: number) => 
-    apiClient.post(`/returns/${id}/analyze`),
+    apiClient.post(`/returns/${id}/analyze/`),
   
   uploadImage: (id: number, formData: FormData) => 
-    apiClient.post(`/returns/${id}/images`, formData, {
+    apiClient.post(`/returns/${id}/images/`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }),
 };
 
-// 分析API
+// 分析相关API
 export const analyticsAPI = {
-  // 获取仪表板摘要数据
   getSummary: () => {
+    console.log('Fetching dashboard summary');
     return apiClient.get('/analytics/dashboard-summary');
   },
-  // 获取详细统计数据
-  getDetailedStats: () => {
-    return apiClient.get('/analytics/summary');
-  },
-  // 获取按类别统计
-  getCategoryStats: () => {
-    return apiClient.get('/analytics/categories');
-  },
-  // 获取按原因统计
-  getReasonStats: () => {
-    return apiClient.get('/analytics/reasons');
-  },
-  // 获取时间序列数据
-  getTimeSeriesData: (days = 30) => {
-    return apiClient.get(`/analytics/time-series?days=${days}`);
-  }
 };
 
-// 导入API
+// 导入相关API
 export const importsAPI = {
   importReturns: (params: any) => 
     apiClient.post('/imports/returns', params),
-  
-  processReturn: (returnId: string) => 
-    apiClient.post('/imports/process', { return_id: returnId }),
 };
 
-// 测试API - 用于演示
+// 测试API
 export const testAPI = {
-  createTestReturn: () => {
-    return apiClient.post('/test/create-return');
-  }
+  createTestReturn: () => 
+    apiClient.post('/test/create-return'),
 };
 
 export default {
