@@ -103,7 +103,7 @@ class Login(Resource):
         
         # Create access token
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),
             additional_claims={'role': user.role}
         )
         
