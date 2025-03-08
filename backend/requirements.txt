@@ -30,4 +30,9 @@ requests==2.31.0
 
 # Development
 black==23.11.0
-flake8==6.1.0 
+flake8==6.1.0
+
+# 添加Cloud SQL所需的依赖
+pymysql==1.1.0
+# 如果使用PostgreSQL，则需要
+# psycopg2-binary==2.9.9 

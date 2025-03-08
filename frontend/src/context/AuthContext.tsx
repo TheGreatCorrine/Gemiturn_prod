@@ -22,7 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // API base URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
 
 // Mock user for demo
 const MOCK_USER: User = {
@@ -55,6 +55,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('Token payload:', payload);
               console.log('Token subject (sub):', payload.sub);
               console.log('Token type:', typeof payload.sub);
+              
+              // 检查令牌是否即将过期（如果过期时间小于5分钟）
+              const currentTime = Math.floor(Date.now() / 1000);
+              if (payload.exp && payload.exp - currentTime < 300) {
+                console.log('Token is about to expire, attempting to refresh');
+                
+                // 尝试刷新令牌
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (refreshToken) {
+                  try {
+                    const response = await authAPI.refreshToken(refreshToken);
+                    const { access_token } = response.data;
+                    
+                    // 保存新的访问令牌
+                    localStorage.setItem('token', access_token);
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+                    console.log('Token refreshed successfully');
+                  } catch (refreshError) {
+                    console.error('Failed to refresh token:', refreshError);
+                    // 刷新失败，清除登录状态
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('refresh_token');
+                    delete axios.defaults.headers.common['Authorization'];
+                    setIsAuthenticated(false);
+                    setIsLoading(false);
+                    return;
+                  }
+                }
+              }
             } else {
               console.error('Invalid token format - not enough segments');
             }
@@ -80,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } catch (error) {
               console.error('Failed to get user info:', error);
               localStorage.removeItem('token');
+              localStorage.removeItem('refresh_token');
               delete axios.defaults.headers.common['Authorization'];
               setIsAuthenticated(false);
             }
@@ -87,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.error('Authentication error:', error);
           localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
           delete axios.defaults.headers.common['Authorization'];
           setIsAuthenticated(false);
         }
@@ -112,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Login response:', response.data);
         
-        const { access_token, user } = response.data;
+        const { access_token, refresh_token, user } = response.data;
         
         // Check and validate token format
         if (!access_token || typeof access_token !== 'string') {
@@ -123,6 +154,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Log the token for debugging (only in development)
         if (process.env.NODE_ENV === 'development') {
           console.log('JWT token received:', access_token);
+          if (refresh_token) {
+            console.log('Refresh token received');
+          }
         }
         
         // Validate token structure
@@ -151,8 +185,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Continue anyway - this is just debugging
         }
         
-        // Save token and setup auth header
+        // Save tokens and setup auth header
         localStorage.setItem('token', access_token);
+        if (refresh_token) {
+          localStorage.setItem('refresh_token', refresh_token);
+        }
         axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
         console.log('Set Authorization header after login:', axios.defaults.headers.common['Authorization']);
         
@@ -169,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // 使用与后端相同格式的JWT令牌
           // 这个token包含了所有必要的字段：sub, exp, iat, type, fresh, jti
           const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0MTM4NTI2NywianRpIjoiZTI1ZGI0N2UtMzRlMS00YzM4LWE5NDgtYTc5YzFmNWQyZGIwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjEiLCJuYmYiOjE3NDEzODUyNjcsImV4cCI6MTc0MTM4ODg2Nywicm9sZSI6ImFkbWluIn0.Gal0zxUBPf1ayN28H3J63r7ewgbHazGhwsylQBjuy0M';
+          const mockRefreshToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0MTM4NTI2NywianRpIjoiZTI1ZGI0N2UtMzRlMS00YzM4LWE5NDgtYTc5YzFmNWQyZGIwIiwidHlwZSI6InJlZnJlc2giLCJzdWIiOiIxIiwibmJmIjoxNzQxMzg1MjY3LCJleHAiOjE3NDQwMTMyNjcsInJvbGUiOiJhZG1pbiJ9.Gal0zxUBPf1ayN28H3J63r7ewgbHazGhwsylQBjuy0M';
           
           // 解析token payload进行验证
           try {
@@ -181,6 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // 保存令牌
           localStorage.setItem('token', mockToken);
+          localStorage.setItem('refresh_token', mockRefreshToken);
           // 设置认证头
           axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
           console.log('Set mock Authorization header:', axios.defaults.headers.common['Authorization']);
@@ -204,8 +243,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
+    setIsAuthenticated(false);
   };
   
   const value = {

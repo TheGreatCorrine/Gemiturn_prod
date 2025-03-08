@@ -13,6 +13,8 @@ import ReturnDetail from 'pages/ReturnDetail';
 import Analytics from 'pages/Analytics';
 import NotFound from 'pages/NotFound';
 import ApiDocumentation from 'pages/ApiDocumentation';
+import CreateReturn from 'pages/CreateReturn';
+import Settings from 'pages/Settings';
 
 // Components
 import Layout from 'components/Layout';
@@ -191,9 +193,11 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="returns" element={<ReturnsList />} />
+            <Route path="returns/new" element={<CreateReturn />} />
             <Route path="returns/:id" element={<ReturnDetail />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="api-docs" element={<ApiDocumentation />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />

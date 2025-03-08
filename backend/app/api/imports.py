@@ -1,9 +1,11 @@
 from flask import request, current_app
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity
+import os
 
 from app.services.import_service import ImportService
 from app.interfaces.mock_platform_api import MockPlatformAPI
+from app.interfaces.local_ecommerce_api import LocalEcommerceAPI
 from app.services.gemini_service import GeminiService
 from app.utils.logger import get_logger
 
@@ -43,6 +45,24 @@ process_response = api.model('ProcessResponse', {
     'error': fields.String(description='错误消息')
 })
 
+def get_platform_api():
+    """
+    根据配置获取适当的平台API实现
+    
+    Returns:
+        PlatformAPIInterface: 平台API接口实现
+    """
+    # 检查是否配置了本地电商平台API
+    api_key = os.environ.get('LOCAL_ECOMMERCE_API_KEY')
+    api_url = os.environ.get('LOCAL_ECOMMERCE_API_URL')
+    
+    if api_key and api_url:
+        logger.info(f"使用本地电商平台API: {api_url}")
+        return LocalEcommerceAPI(api_key=api_key, base_url=api_url)
+    else:
+        logger.info("使用模拟平台API")
+        return MockPlatformAPI()
+
 @api.route('/returns')
 class ImportReturns(Resource):
     @api.doc('import_returns')
@@ -62,7 +82,7 @@ class ImportReturns(Resource):
         limit = data.get('limit', 100)
         
         # 创建服务实例
-        platform_api = MockPlatformAPI()  # 使用模拟 API，实际应用中应根据配置选择
+        platform_api = get_platform_api()
         ai_service = GeminiService()
         import_service = ImportService(platform_api, ai_service)
         
@@ -101,7 +121,7 @@ class ProcessReturn(Resource):
             return {'success': False, 'error': '缺少退货 ID'}, 400
         
         # 创建服务实例
-        platform_api = MockPlatformAPI()  # 使用模拟 API，实际应用中应根据配置选择
+        platform_api = get_platform_api()
         ai_service = GeminiService()
         import_service = ImportService(platform_api, ai_service)
         

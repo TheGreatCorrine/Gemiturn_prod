@@ -61,14 +61,26 @@ const Dashboard: React.FC = () => {
     setLoading(true);
     try {
       const response = await analyticsAPI.getSummary();
-      setSummaryData(response.data);
+      
+      // 确保所有必要的属性都存在，如果不存在则使用默认值
+      const data = {
+        pending_count: response.data.pending_count || 0,
+        processing_count: response.data.processing_count || 0,
+        completed_count: response.data.completed_count || 0,
+        rejected_count: response.data.rejected_count || 0,
+        total_count: response.data.total_count || 0,
+        avg_processing_time: response.data.avg_processing_time || 0,
+        total_refund_amount: response.data.total_refund_amount || 0
+      };
+      
+      setSummaryData(data);
       setLastUpdated(new Date().toISOString());
       
       // Generate recent activity based on test returns
       const newActivity: RecentActivity[] = [];
       
       // Add a "new return" activity for each pending item (up to 3)
-      for (let i = 0; i < Math.min(3, response.data.pending_count); i++) {
+      for (let i = 0; i < Math.min(3, data.pending_count); i++) {
         newActivity.push({
           id: i,
           action: "New return request submitted",
@@ -78,7 +90,7 @@ const Dashboard: React.FC = () => {
       }
       
       // Add a "processed" activity for each completed item (up to 2)
-      for (let i = 0; i < Math.min(2, response.data.completed_count); i++) {
+      for (let i = 0; i < Math.min(2, data.completed_count); i++) {
         newActivity.push({
           id: i + 10,
           action: "Return processed",
@@ -89,7 +101,7 @@ const Dashboard: React.FC = () => {
       }
       
       // Add a "shipment received" activity
-      if (response.data.processing_count > 0) {
+      if (data.processing_count > 0) {
         newActivity.push({
           id: 20,
           action: "Return shipment received",
@@ -416,7 +428,9 @@ const Dashboard: React.FC = () => {
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
                 <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem' }}>
-                  {summaryData.avg_processing_time.toFixed(1)}
+                  {summaryData.avg_processing_time !== undefined && summaryData.avg_processing_time !== null
+                    ? summaryData.avg_processing_time.toFixed(1)
+                    : '0.0'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ ml: 1, mb: 0.5 }}>
                   hours
@@ -446,7 +460,9 @@ const Dashboard: React.FC = () => {
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
                 <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem' }}>
-                  ¥{summaryData.total_refund_amount.toFixed(2)}
+                  ¥{summaryData.total_refund_amount !== undefined && summaryData.total_refund_amount !== null
+                    ? summaryData.total_refund_amount.toFixed(2)
+                    : '0.00'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ ml: 1, mb: 0.5 }}>
                   yuan

@@ -1,14 +1,23 @@
 import os
 from datetime import timedelta
 import logging
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 class Config:
     """Base configuration"""
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key-please-change-in-production')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'jwt-dev-key-please-change')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-secret-key')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    
+    # CORS Configuration
+    CORS_HEADERS = 'Content-Type'
     
     # Database
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Google Cloud
@@ -18,7 +27,7 @@ class Config:
     GCP_CREDENTIALS_FILE = os.environ.get('GCP_CREDENTIALS_FILE')
     
     # Gemini API
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    GOOGLE_API_KEY = os.environ.get('GEMINI_API_KEY')
     
     # App settings
     ITEMS_PER_PAGE = int(os.environ.get('ITEMS_PER_PAGE', 10))
@@ -39,32 +48,41 @@ class Config:
         else:
             return logging.INFO
 
+    # 文件上传配置
+    UPLOAD_FOLDER = 'uploads'
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-        'sqlite:///dev-gemiturn.db'
+    CORS_ORIGINS = ['http://localhost:3000']  # 前端开发服务器地址
 
 
 class TestingConfig(Config):
     """Testing configuration"""
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
-        'sqlite:///test-gemiturn.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///test-gemiturn.db'
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=5)
 
 
 class ProductionConfig(Config):
     """Production configuration"""
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    DEBUG = False
+    CORS_ORIGINS = ['https://your-production-domain.com']  # 生产环境前端地址
     
-    # Override these in production
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+    # Google Cloud SQL配置
+    # 使用环境变量获取连接信息
+    DB_USER = os.environ.get('DB_USER', 'gemiturn')
+    DB_PASS = os.environ.get('DB_PASS', 'your-password')
+    DB_NAME = os.environ.get('DB_NAME', 'gemiturn')
+    CLOUD_SQL_CONNECTION_NAME = os.environ.get('CLOUD_SQL_CONNECTION_NAME', 'your-project:your-region:your-instance')
     
-    # 生产环境日志级别默认为 WARNING
-    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING')
+    # MySQL
+    SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASS}@/{DB_NAME}?unix_socket=/cloudsql/{CLOUD_SQL_CONNECTION_NAME}"
+    
+    # 或者使用PostgreSQL
+    # SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@/{DB_NAME}?host=/cloudsql/{CLOUD_SQL_CONNECTION_NAME}"
 
 
 config = {

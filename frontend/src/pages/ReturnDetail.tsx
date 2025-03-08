@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,40 +16,92 @@ import {
   Select,
   FormControl,
   InputLabel,
-  SelectChangeEvent
+  SelectChangeEvent,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 
-// Mock data
-const mockReturn = {
-  id: 1,
-  order_id: 'ORD-12345',
-  product_id: 'PROD-789',
-  product_name: 'Smart Watch',
-  product_category: 'Electronics',
-  return_reason: 'Product Damage',
-  customer_description: 'The watch I received has scratches on the screen, and the buttons are not responsive.',
-  image_urls: [
-    'https://example.com/image1.jpg',
-    'https://example.com/image2.jpg'
-  ],
-  ai_category: 'Physical Damage',
-  ai_reason: 'Damage during shipping',
-  ai_recommendation: 'Discount Resale',
-  ai_confidence: 0.85,
-  status: 'pending',
-  original_price: 1299.00,
-  resale_price: null,
-  created_at: '2023-11-15T10:30:00Z',
-  updated_at: '2023-11-15T10:30:00Z',
-  processed_at: null
-};
+// API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+
+// 定义退货订单类型
+interface ReturnItem {
+  id: number;
+  order_id: string;
+  product_id: string;
+  product_name: string;
+  product_category: string;
+  return_reason: string;
+  customer_description: string;
+  original_price: number;
+  ai_analysis: {
+    category: string;
+    reason: string;
+    recommendation: string;
+    confidence: number;
+  } | null;
+  status: string;
+  resale_price?: number | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const ReturnDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [status, setStatus] = useState(mockReturn.status);
-  const [resalePrice, setResalePrice] = useState<number | null>(mockReturn.resale_price);
+  const [returnItem, setReturnItem] = useState<ReturnItem | null>(null);
+  const [status, setStatus] = useState<string>('');
+  const [resalePrice, setResalePrice] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // 获取退货订单详情
+  useEffect(() => {
+    const fetchReturnDetail = async () => {
+      setLoading(true);
+      setError('');
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('未找到认证令牌，请先登录');
+          setLoading(false);
+          return;
+        }
+        
+        const response = await fetch(`${API_URL}/returns/${id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`获取退货订单详情失败: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('获取到的退货订单详情:', data);
+        
+        setReturnItem(data);
+        setStatus(data.status);
+        setResalePrice(data.resale_price);
+      } catch (err: any) {
+        console.error('获取退货订单详情错误:', err);
+        setError(err.message || '获取退货订单详情失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (id) {
+      fetchReturnDetail();
+    }
+  }, [id]);
 
   const handleStatusChange = (event: SelectChangeEvent) => {
     setStatus(event.target.value);
@@ -63,17 +115,51 @@ const ReturnDetail: React.FC = () => {
     setNotes(event.target.value);
   };
 
-  const handleSave = () => {
-    // This would call an API to save changes
-    console.log('Saving changes:', { status, resalePrice, notes });
-    alert('Changes saved');
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('未找到认证令牌，请先登录');
+        return;
+      }
+      
+      const response = await fetch(`${API_URL}/returns/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          status,
+          resale_price: resalePrice,
+          notes
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`更新退货订单失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const updatedData = await response.json();
+      setReturnItem(updatedData);
+      setSaveSuccess(true);
+      
+      // 3秒后隐藏成功提示
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+    } catch (err: any) {
+      console.error('更新退货订单错误:', err);
+      setError(err.message || '更新退货订单失败');
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
         return 'warning';
-      case 'approved':
+      case 'processing':
         return 'info';
       case 'completed':
         return 'success';
@@ -88,8 +174,8 @@ const ReturnDetail: React.FC = () => {
     switch (status) {
       case 'pending':
         return 'Pending';
-      case 'approved':
-        return 'Approved';
+      case 'processing':
+        return 'Processing';
       case 'completed':
         return 'Completed';
       case 'rejected':
@@ -105,91 +191,135 @@ const ReturnDetail: React.FC = () => {
     return date.toLocaleDateString('en-US') + ' ' + date.toLocaleTimeString('en-US');
   };
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/returns')}
+          sx={{ mt: 2 }}
+        >
+          返回列表
+        </Button>
+      </Box>
+    );
+  }
+
+  if (!returnItem) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">未找到退货订单</Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/returns')}
+          sx={{ mt: 2 }}
+        >
+          返回列表
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          Return Details #{id}
+          退货订单详情 #{id}
         </Typography>
         <Button variant="outlined" onClick={() => navigate('/returns')}>
-          Back to List
+          返回列表
         </Button>
       </Box>
+
+      {saveSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          更新成功
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* Basic Information */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Basic Information
+              基本信息
             </Typography>
             <Divider sx={{ mb: 2 }} />
             
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Order Number
+                  订单编号
                 </Typography>
                 <Typography variant="body1">
-                  {mockReturn.order_id}
+                  {returnItem.order_id}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Product ID
+                  商品编号
                 </Typography>
                 <Typography variant="body1">
-                  {mockReturn.product_id}
+                  {returnItem.product_id}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Product Name
+                  商品名称
                 </Typography>
                 <Typography variant="body1">
-                  {mockReturn.product_name}
+                  {returnItem.product_name}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Product Category
+                  商品类别
                 </Typography>
                 <Typography variant="body1">
-                  {mockReturn.product_category}
+                  {returnItem.product_category}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Original Price
+                  原始价格
                 </Typography>
                 <Typography variant="body1">
-                  ¥{mockReturn.original_price.toFixed(2)}
+                  ¥{returnItem.original_price.toFixed(2)}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Status
+                  状态
                 </Typography>
                 <Chip 
-                  label={getStatusText(mockReturn.status)} 
-                  color={getStatusColor(mockReturn.status) as any}
+                  label={getStatusText(returnItem.status)} 
+                  color={getStatusColor(returnItem.status) as any}
                   size="small"
                 />
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Created At
+                  创建时间
                 </Typography>
                 <Typography variant="body1">
-                  {formatDate(mockReturn.created_at)}
+                  {formatDate(returnItem.created_at)}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  Processed At
+                  更新时间
                 </Typography>
                 <Typography variant="body1">
-                  {formatDate(mockReturn.processed_at)}
+                  {formatDate(returnItem.updated_at)}
                 </Typography>
               </Grid>
             </Grid>
@@ -200,44 +330,23 @@ const ReturnDetail: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Return Reason
+              退货原因
             </Typography>
             <Divider sx={{ mb: 2 }} />
             
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Customer Provided Reason
+              客户提供的原因
             </Typography>
             <Typography variant="body1" paragraph>
-              {mockReturn.return_reason}
+              {returnItem.return_reason}
             </Typography>
             
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Customer Description
+              客户描述
             </Typography>
             <Typography variant="body1" paragraph>
-              {mockReturn.customer_description}
+              {returnItem.customer_description}
             </Typography>
-            
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Images
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {mockReturn.image_urls.map((url, index) => (
-                <Box 
-                  key={index}
-                  component="img"
-                  src="https://via.placeholder.com/150"
-                  alt={`Return Image ${index + 1}`}
-                  sx={{ 
-                    width: 100, 
-                    height: 100, 
-                    objectFit: 'cover',
-                    border: '1px solid #eee',
-                    borderRadius: 1
-                  }}
-                />
-              ))}
-            </Box>
           </Paper>
         </Grid>
 
@@ -245,36 +354,46 @@ const ReturnDetail: React.FC = () => {
         <Grid item xs={12}>
           <Card>
             <CardHeader 
-              title="AI Analysis" 
-              subheader={`Confidence: ${(mockReturn.ai_confidence * 100).toFixed(0)}%`}
+              title="AI 分析结果" 
+              subheader={returnItem.ai_analysis ? 
+                `置信度: ${(returnItem.ai_analysis.confidence * 100).toFixed(0)}%` : 
+                '无AI分析结果'}
             />
             <CardContent>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    Category
-                  </Typography>
-                  <Typography variant="body1">
-                    {mockReturn.ai_category}
-                  </Typography>
+              {returnItem.ai_analysis ? (
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2" color="text.secondary">
+                      分类
+                    </Typography>
+                    <Typography variant="body1">
+                      {returnItem.ai_analysis.category}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2" color="text.secondary">
+                      原因
+                    </Typography>
+                    <Typography variant="body1">
+                      {returnItem.ai_analysis.reason}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2" color="text.secondary">
+                      建议
+                    </Typography>
+                    <Chip 
+                      label={returnItem.ai_analysis.recommendation}
+                      color="primary"
+                      size="small"
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    Reason
-                  </Typography>
-                  <Typography variant="body1">
-                    {mockReturn.ai_reason}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    Recommendation
-                  </Typography>
-                  <Typography variant="body1">
-                    {mockReturn.ai_recommendation}
-                  </Typography>
-                </Grid>
-              </Grid>
+              ) : (
+                <Typography variant="body1" color="text.secondary">
+                  该退货订单没有AI分析结果
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -298,7 +417,7 @@ const ReturnDetail: React.FC = () => {
                     onChange={handleStatusChange}
                   >
                     <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="processing">Processing</MenuItem>
                     <MenuItem value="completed">Completed</MenuItem>
                     <MenuItem value="rejected">Rejected</MenuItem>
                   </Select>

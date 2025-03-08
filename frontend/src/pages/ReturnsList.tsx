@@ -29,13 +29,14 @@ import {
   Search as SearchIcon,
   MoreVert as MoreVertIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { returnsAPI, analyticsAPI } from '../services/api';
 import axios from 'axios';
 
-// 定义API URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+// API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
 
 const ReturnsList: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -54,6 +55,8 @@ const ReturnsList: React.FC = () => {
     completed_count: 0,
     avg_processing_time: 0
   });
+  const [analyzeLoading, setAnalyzeLoading] = useState(false);
+  const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
@@ -62,14 +65,13 @@ const ReturnsList: React.FC = () => {
     const token = localStorage.getItem('token');
     if (token) {
       console.log('Token found in localStorage:', token.substring(0, 20) + '...');
+      fetchReturns();
+      fetchStats();
     } else {
-      console.error('No token found in localStorage!');
-      setError('未找到认证令牌，请先登录');
-      return;
+      console.warn('No token found in localStorage!');
+      // 重定向到登录页面
+      window.location.href = '/login';
     }
-    
-    fetchReturns();
-    fetchStats();
   }, []);
 
   const fetchReturns = async () => {
@@ -77,45 +79,22 @@ const ReturnsList: React.FC = () => {
     setError('');
     
     // Add debug information
-    console.log('Fetching returns with filters:', { productCategory, returnReason, status, dateRange });
+    console.log('Fetching returns with params:', {
+      page: page + 1,
+      limit: rowsPerPage,
+      product_category: productCategory,
+      return_reason: returnReason,
+      status: status,
+      date_range: dateRange
+    });
     
     try {
-      // Re-verify auth state before making the request
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No token found in localStorage');
-        setError('Authentication token missing. Please login again.');
+        setError('未找到认证令牌，请先登录');
         setLoading(false);
         return;
       }
-      
-      // Check token format
-      if (!token.includes('.') || token.split('.').length !== 3) {
-        console.error('Invalid token format:', token);
-        setError('Invalid authentication token format. Please login again.');
-        setLoading(false);
-        return;
-      }
-      
-      // 解析token payload
-      try {
-        const tokenParts = token.split('.');
-        const payload = JSON.parse(atob(tokenParts[1]));
-        console.log('Token payload:', payload);
-        console.log('Token claims:', {
-          sub: payload.sub,
-          exp: payload.exp,
-          iat: payload.iat,
-          type: payload.type,
-          fresh: payload.fresh,
-          jti: payload.jti
-        });
-      } catch (e) {
-        console.error('Error decoding token payload:', e);
-      }
-      
-      // 使用最简单的请求 - 不使用任何过滤参数
-      console.log('Trying minimal fetch API request...');
       
       // 简化: 只使用最基本的分页参数
       // 注意: 一些API端点使用page_size而不是limit，page从0开始而不是1
@@ -154,7 +133,14 @@ const ReturnsList: React.FC = () => {
       
       // 解析响应数据
       const data = await response.json();
-      console.log('Fetch API response data:', data);
+      console.log('获取到的退货列表数据:', data);
+      console.log('数据示例:', data.length > 0 ? {
+        第一条数据: data[0],
+        AI分析结果: data[0].ai_analysis,
+        建议: data[0].ai_analysis?.recommendation,
+        置信度: data[0].ai_analysis?.confidence,
+        分类: data[0].ai_analysis?.category
+      } : '暂无数据');
       
       // 处理数据
       if (Array.isArray(data)) {
@@ -180,26 +166,23 @@ const ReturnsList: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      console.log('Fetching stats data...');
-      
-      // 获取token
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No token found for stats API');
+        console.error('No token found for stats fetch');
         return;
       }
       
-      // 使用fetch API调用统计接口
+      console.log('Fetching dashboard summary');
       const response = await fetch(`${API_URL}/analytics/dashboard-summary`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         }
       });
       
       console.log('Stats API response status:', response.status);
+      console.log('Stats API response headers:', response.headers);
       
       // 检查响应状态
       if (!response.ok) {
@@ -307,21 +290,33 @@ const ReturnsList: React.FC = () => {
   };
   
   const getAIRecommendationStyle = (recommendation: string) => {
-    switch (recommendation) {
-      case 'Resell':
+    switch (recommendation?.toLowerCase()) {
+      case '直接转售':
+      case 'resell':
+      case '直接再次销售':
         return {
           bg: '#E8F5E9',
           color: '#4CAF50',
         };
-      case 'Repair and sell':
+      case '维修后销售':
+      case 'repair and sell':
+      case '维修后再销售':
         return {
           bg: '#E3F2FD',
           color: '#2196F3',
         };
-      case 'Return to manufacturer':
+      case '退回供应商':
+      case 'return to manufacturer':
+      case '退回制造商':
         return {
           bg: '#FFF3E0',
           color: '#FF9800',
+        };
+      case '人工审核':
+      case 'manual review':
+        return {
+          bg: '#FFEBEE',
+          color: '#F44336',
         };
       default:
         return {
@@ -465,8 +460,8 @@ const ReturnsList: React.FC = () => {
       `${API_URL}/returns/`,         // 带斜杠
       `${API_URL}/return`,           // 单数形式
       `${API_URL}/return/`,          // 单数形式+斜杠
-      `http://localhost:5001/api/returns`, // 直接使用完整URL
-      `http://localhost:5001/api/returns/` // 直接使用完整URL+斜杠
+      `${API_URL}/returns`,          // 重复测试
+      `${API_URL}/returns/`          // 重复测试
     ];
     
     // 依次测试所有路径
@@ -726,14 +721,65 @@ const ReturnsList: React.FC = () => {
     }
   };
 
+  const handleBatchAnalyze = async () => {
+    setAnalyzeLoading(true);
+    setAnalyzeSuccess(null);
+    setError('');
+    
+    try {
+      const response = await returnsAPI.analyzeAllReturns();
+      console.log('批量分析响应:', response.data);
+      
+      if (response.data.success) {
+        setAnalyzeSuccess(`批量分析完成: ${response.data.message}`);
+        // 刷新数据
+        fetchReturns();
+      } else {
+        setError(`批量分析失败: ${response.data.message}`);
+      }
+    } catch (err: any) {
+      console.error('批量分析失败:', err);
+      setError(`批量分析失败: ${err.message}`);
+    } finally {
+      setAnalyzeLoading(false);
+    }
+  };
+
   return (
     <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">
+          退货管理
+        </Typography>
+        <Box>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleBatchAnalyze}
+            sx={{ mr: 2 }}
+            disabled={analyzeLoading}
+          >
+            {analyzeLoading ? <CircularProgress size={24} color="inherit" /> : '批量分析未处理退货'}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => navigate('/returns/new')}
+            startIcon={<AddIcon />}
+          >
+            创建退货订单
+          </Button>
+        </Box>
+      </Box>
+      
+      {analyzeSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setAnalyzeSuccess(null)}>
+          {analyzeSuccess}
+        </Alert>
+      )}
+      
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12}>
-          <Typography variant="h4" gutterBottom>
-            退货管理
-          </Typography>
-          
           {/* 添加调试按钮 */}
           <Button 
             variant="outlined" 
@@ -902,7 +948,7 @@ const ReturnsList: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
               <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                {stats.avg_processing_time.toFixed(1)} days
+                {stats.avg_processing_time !== undefined ? stats.avg_processing_time.toFixed(1) : '0.0'} days
               </Typography>
               <Typography 
                 variant="body2" 
@@ -1054,12 +1100,12 @@ const ReturnsList: React.FC = () => {
               <Table sx={{ minWidth: 650 }} size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Order Info</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Return Reason</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI Recommendation</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Amount</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>订单信息</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>退货原因</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI建议</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>状态</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>金额</TableCell>
+                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>操作</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1101,20 +1147,27 @@ const ReturnsList: React.FC = () => {
                           {row.return_reason}
                         </TableCell>
                         <TableCell>
-                          <Chip 
-                            label={row.ai_recommendation || 'Not analyzed'}
-                            size="small"
-                            sx={{ 
-                              fontSize: '0.75rem',
-                              bgcolor: row.ai_recommendation ? getAIRecommendationStyle(row.ai_recommendation).bg : '#f5f5f5',
-                              color: row.ai_recommendation ? getAIRecommendationStyle(row.ai_recommendation).color : '#757575',
-                            }}
-                          />
-                          {row.ai_confidence && (
-                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                              Confidence: {(row.ai_confidence * 100).toFixed(0)}%
-                            </Typography>
-                          )}
+                          <Box>
+                            <Chip 
+                              label={row.ai_analysis?.recommendation || '未分析'}
+                              size="small"
+                              sx={{ 
+                                fontSize: '0.75rem',
+                                bgcolor: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).bg : '#f5f5f5',
+                                color: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).color : '#757575',
+                              }}
+                            />
+                            {row.ai_analysis?.confidence !== undefined && (
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                                置信度: {(row.ai_analysis.confidence * 100).toFixed(0)}%
+                              </Typography>
+                            )}
+                            {row.ai_analysis?.category && (
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                                分类: {row.ai_analysis.category}
+                              </Typography>
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Chip 
@@ -1129,9 +1182,9 @@ const ReturnsList: React.FC = () => {
                         </TableCell>
                         <TableCell sx={{ fontSize: '0.8125rem' }}>
                           <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
-                            ${row.original_price?.toFixed(2) || '0.00'}
+                            ${row.original_price ? row.original_price.toFixed(2) : '0.00'}
                           </Typography>
-                          {row.resale_price > 0 && (
+                          {row.resale_price && row.resale_price > 0 && (
                             <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
                               Resale: ${row.resale_price.toFixed(2)}
                             </Typography>

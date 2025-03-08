@@ -10,6 +10,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Create namespace
 api = Namespace('analytics', description='Analytics operations')
 
 # Models for API documentation
@@ -104,23 +105,24 @@ class DashboardSummary(Resource):
         rejected_count = ReturnItem.query.filter_by(status='rejected').count()
         total_count = ReturnItem.query.count()
         
-        # 平均处理时间
+        # 平均处理时间 - 由于没有processed_at字段，使用updated_at作为替代
         completed_items = ReturnItem.query.filter(
-            ReturnItem.status == 'completed',
-            ReturnItem.processed_at.isnot(None)
+            ReturnItem.status == 'completed'
         ).all()
         
         if completed_items:
             total_days = sum(
-                (item.processed_at - item.created_at).total_seconds() / 86400
-                for item in completed_items if item.processed_at
+                (item.updated_at - item.created_at).total_seconds() / 86400
+                for item in completed_items
             )
             avg_processing_time = total_days / len(completed_items)
         else:
             avg_processing_time = 0
         
-        # 总退款金额
-        total_refund_result = db.session.query(func.sum(ReturnItem.refund_amount)).scalar()
+        # 总退款金额 - 由于没有refund_amount字段，使用original_price作为替代
+        total_refund_result = db.session.query(func.sum(ReturnItem.original_price)).filter(
+            ReturnItem.status == 'completed'
+        ).scalar()
         total_refund_amount = total_refund_result if total_refund_result else 0
         
         return {
@@ -141,24 +143,19 @@ class CategoryStats(Resource):
     @jwt_required()
     def get(self):
         """Get return statistics by product category"""
-        # Get category counts
+        # Get category counts - 使用product_category而不是product_category_id
         category_counts = db.session.query(
-            ReturnItem.product_category_id,
+            ReturnItem.product_category,
             func.count(ReturnItem.id).label('count')
-        ).group_by(ReturnItem.product_category_id).all()
+        ).group_by(ReturnItem.product_category).all()
         
         # Calculate total
         total_returns = ReturnItem.query.count()
         
         # Format results
         results = []
-        for category_id, count in category_counts:
-            if category_id:
-                from app.models.product_category import ProductCategory
-                category = ProductCategory.query.get(category_id)
-                category_name = category.name if category else "Unknown"
-            else:
-                category_name = "Uncategorized"
+        for category, count in category_counts:
+            category_name = category if category else "Uncategorized"
                 
             percentage = (count / total_returns * 100) if total_returns > 0 else 0
             results.append({
@@ -180,14 +177,14 @@ class ReasonStats(Resource):
     @jwt_required()
     def get(self):
         """Get return statistics by return reason"""
-        # Get reason counts (using AI-detected reasons)
+        # Get reason counts - 使用return_reason而不是ai_reason
         reason_counts = db.session.query(
-            ReturnItem.ai_reason,
+            ReturnItem.return_reason,
             func.count(ReturnItem.id).label('count')
-        ).filter(ReturnItem.ai_reason.isnot(None)).group_by(ReturnItem.ai_reason).all()
+        ).group_by(ReturnItem.return_reason).all()
         
         # Calculate total
-        total_returns = ReturnItem.query.filter(ReturnItem.ai_reason.isnot(None)).count()
+        total_returns = ReturnItem.query.count()
         
         # Format results
         results = []
