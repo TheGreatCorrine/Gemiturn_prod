@@ -25,3 +25,9 @@ logs/
 # Operating System
 .DS_Store
 Thumbs.db
+
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

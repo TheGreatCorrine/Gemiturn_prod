@@ -1,33 +1,33 @@
-# Gemiturn AI分析系统 GCP部署指南
+# Gemiturn AI Analysis System GCP Deployment Guide
 
-本文档提供了将Gemiturn AI分析系统部署到Google Cloud Platform (GCP)的详细步骤。
+This document provides detailed steps for deploying the Gemiturn AI Analysis System on Google Cloud Platform (GCP).
 
-## 前提条件
+## Prerequisites
 
-1. 拥有Google Cloud Platform账户
-2. 安装并配置Google Cloud SDK
-3. 安装Docker（用于容器化应用）
-4. 本地电商平台已实现必要的API端点（参见`ecommerce_api_integration.md`）
+1. Google Cloud Platform account
+2. Google Cloud SDK installed and configured
+3. Docker (for containerizing applications)
+4. Local e-commerce platform with necessary API endpoints implemented (see `ecommerce_api_integration.md`)
 
-## 部署架构
+## Deployment Architecture
 
-我们将采用以下架构部署Gemiturn AI分析系统：
+We will deploy the Gemiturn AI Analysis System using the following architecture:
 
-1. **App Engine**：托管后端Flask应用
-2. **Cloud SQL**：托管MySQL数据库
-3. **Cloud Storage**：存储退货图片和其他静态资源
-4. **VPC网络**：配置安全的网络连接
-5. **Cloud IAM**：管理访问权限
+1. **App Engine**: Hosting the backend Flask application
+2. **Cloud SQL**: Hosting the MySQL database
+3. **Cloud Storage**: Storing return images and other static resources
+4. **VPC Network**: Configuring secure network connections
+5. **Cloud IAM**: Managing access permissions
 
-## 步骤1：准备GCP项目
+## Step 1: Prepare GCP Project
 
-1. 创建新的GCP项目（或使用现有项目）
+1. Create a new GCP project (or use an existing one)
    ```bash
    gcloud projects create gemiturn-ai --name="Gemiturn AI Analysis"
    gcloud config set project gemiturn-ai
    ```
 
-2. 启用必要的API
+2. Enable necessary APIs
    ```bash
    gcloud services enable appengine.googleapis.com \
        cloudsql.googleapis.com \
@@ -36,9 +36,9 @@
        secretmanager.googleapis.com
    ```
 
-## 步骤2：设置Cloud SQL
+## Step 2: Set Up Cloud SQL
 
-1. 创建Cloud SQL实例
+1. Create a Cloud SQL instance
    ```bash
    gcloud sql instances create gemiturn-db \
        --database-version=MYSQL_8_0 \
@@ -47,37 +47,37 @@
        --root-password=YOUR_ROOT_PASSWORD
    ```
 
-2. 创建数据库和用户
+2. Create database and user
    ```bash
    gcloud sql databases create gemiturn --instance=gemiturn-db
    gcloud sql users create gemiturn --instance=gemiturn-db --password=YOUR_DB_PASSWORD
    ```
 
-3. 记下连接信息
+3. Note the connection information
    ```
-   实例连接名称: gemiturn-ai:us-central1:gemiturn-db
-   数据库名称: gemiturn
-   用户名: gemiturn
-   密码: YOUR_DB_PASSWORD
+   Instance connection name: gemiturn-ai:us-central1:gemiturn-db
+   Database name: gemiturn
+   Username: gemiturn
+   Password: YOUR_DB_PASSWORD
    ```
 
-## 步骤3：设置Cloud Storage
+## Step 3: Set Up Cloud Storage
 
-1. 创建存储桶
+1. Create a storage bucket
    ```bash
    gcloud storage buckets create gs://gemiturn-ai-storage --location=us-central1
    ```
 
-2. 设置访问权限
+2. Set access permissions
    ```bash
    gcloud storage buckets add-iam-policy-binding gs://gemiturn-ai-storage \
        --member=serviceAccount:gemiturn-ai@appspot.gserviceaccount.com \
        --role=roles/storage.objectAdmin
    ```
 
-## 步骤4：配置Secret Manager
+## Step 4: Configure Secret Manager
 
-1. 创建密钥
+1. Create secrets
    ```bash
    echo -n "YOUR_DB_PASSWORD" | gcloud secrets create db-password --data-file=-
    echo -n "YOUR_JWT_SECRET_KEY" | gcloud secrets create jwt-secret-key --data-file=-
@@ -85,7 +85,7 @@
    echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
    ```
 
-2. 授予App Engine访问权限
+2. Grant App Engine access permissions
    ```bash
    gcloud secrets add-iam-policy-binding db-password \
        --member=serviceAccount:gemiturn-ai@appspot.gserviceaccount.com \
@@ -104,10 +104,10 @@
        --role=roles/secretmanager.secretAccessor
    ```
 
-## 步骤5：准备应用程序
+## Step 5: Prepare the Application
 
-1. 更新配置文件
-   编辑`backend/app.yaml`文件，确保包含以下内容：
+1. Update the configuration file
+   Edit the `backend/app.yaml` file to include the following:
    ```yaml
    runtime: python39
    
@@ -129,7 +129,7 @@
    entrypoint: gunicorn -b :$PORT run:app
    ```
 
-2. 创建VPC访问连接器（如果需要访问本地资源）
+2. Create a VPC access connector (if access to local resources is needed)
    ```bash
    gcloud compute networks vpc-access connectors create gemiturn-connector \
        --region=us-central1 \
@@ -137,103 +137,103 @@
        --range=10.8.0.0/28
    ```
 
-3. 更新数据库迁移脚本
-   确保`backend/migrations/cloud_sql_migration.py`文件已正确配置。
+3. Update database migration scripts
+   Ensure the `backend/migrations/cloud_sql_migration.py` file is properly configured.
 
-## 步骤6：部署后端应用
+## Step 6: Deploy the Backend Application
 
-1. 导航到后端目录
+1. Navigate to the backend directory
    ```bash
    cd backend
    ```
 
-2. 安装依赖
+2. Install dependencies
    ```bash
    pip install -r requirements.txt
    ```
 
-3. 部署到App Engine
+3. Deploy to App Engine
    ```bash
    gcloud app deploy
    ```
 
-4. 迁移数据库
+4. Migrate the database
    ```bash
    gcloud app instances ssh --service=default --version=YOUR_VERSION -- "cd /app && python migrations/cloud_sql_migration.py"
    ```
 
-## 步骤7：部署前端应用（可选）
+## Step 7: Deploy the Frontend Application (Optional)
 
-如果您的前端应用也需要部署到GCP：
+If your frontend application also needs to be deployed to GCP:
 
-1. 导航到前端目录
+1. Navigate to the frontend directory
    ```bash
    cd frontend
    ```
 
-2. 构建生产版本
+2. Build the production version
    ```bash
    npm run build
    ```
 
-3. 部署到Firebase Hosting或App Engine
+3. Deploy to Firebase Hosting or App Engine
    ```bash
-   # 使用Firebase Hosting
+   # Using Firebase Hosting
    firebase deploy
    
-   # 或使用App Engine
+   # Or using App Engine
    gcloud app deploy
    ```
 
-## 步骤8：配置网络连接
+## Step 8: Configure Network Connections
 
-为了让GCP上的AI分析系统能够访问本地电商平台，您需要：
+To enable the AI Analysis System on GCP to access your local e-commerce platform, you need to:
 
-1. 确保本地电商平台有公网IP地址，或
-2. 设置VPN连接，或
-3. 使用Cloud Interconnect连接本地网络和GCP
+1. Ensure your local e-commerce platform has a public IP address, or
+2. Set up a VPN connection, or
+3. Use Cloud Interconnect to connect your local network and GCP
 
-### 选项1：公网IP地址
+### Option 1: Public IP Address
 
-如果您的本地电商平台有公网IP地址，只需确保：
-- 防火墙允许来自GCP的连接
-- API端点使用HTTPS加密
-- 实施适当的认证和授权机制
+If your local e-commerce platform has a public IP address, simply ensure:
+- Your firewall allows connections from GCP
+- API endpoints use HTTPS encryption
+- Appropriate authentication and authorization mechanisms are implemented
 
-### 选项2：设置VPN连接
+### Option 2: Set Up a VPN Connection
 
-1. 在GCP上创建VPN网关
+1. Create a VPN gateway on GCP
    ```bash
    gcloud compute target-vpn-gateways create gemiturn-vpn-gateway \
        --region=us-central1 \
        --network=default
    ```
 
-2. 配置本地VPN设备连接到GCP VPN网关
-   （具体步骤取决于您的本地网络设备）
+2. Configure your local VPN device to connect to the GCP VPN gateway
+   (Specific steps depend on your local network device)
 
-### 选项3：使用Cloud Interconnect
+### Option 3: Use Cloud Interconnect
 
-对于企业级连接，可以考虑使用Cloud Interconnect：
-1. 联系Google Cloud销售团队
-2. 设置专用互连或合作伙伴互连
-3. 配置路由和防火墙规则
+For enterprise-level connections, consider using Cloud Interconnect:
+1. Contact the Google Cloud sales team
+2. Set up Dedicated or Partner Interconnect
+3. Configure routing and firewall rules
 
-## 步骤9：测试部署
+## Step 9: Test the Deployment
 
-1. 访问部署的应用
+1. Access the deployed application
    ```
    https://gemiturn-ai.appspot.com
    ```
 
-2. 测试API连接
+2. Test the API connection
    ```bash
    curl -X POST https://gemiturn-ai.appspot.com/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"username": "admin", "password": "admin123"}'
    ```
 
-3. 测试导入功能
+3. Test the import functionality
    ```bash
    curl -X POST https://gemiturn-ai.appspot.com/api/imports/returns \
      -H "Content-Type: application/json" \
@@ -241,71 +241,71 @@
      -d '{"limit": 10}'
    ```
 
-## 监控和维护
+## Monitoring and Maintenance
 
-1. 设置日志记录
+1. Set up logging
    ```bash
    gcloud logging sinks create gemiturn-logs \
        storage.googleapis.com/gemiturn-ai-logs \
        --log-filter="resource.type=gae_app AND resource.labels.module_id=default"
    ```
 
-2. 设置监控告警
+2. Set up monitoring alerts
    ```bash
    gcloud alpha monitoring policies create \
        --policy-from-file=monitoring-policy.json
    ```
 
-3. 设置定期备份
+3. Set up regular backups
    ```bash
    gcloud sql backups create --instance=gemiturn-db
    ```
 
-## 故障排除
+## Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **数据库连接失败**
-   - 检查Cloud SQL连接名称
-   - 验证数据库用户名和密码
-   - 确保App Engine服务账号有访问Cloud SQL的权限
+1. **Database connection failure**
+   - Check the Cloud SQL connection name
+   - Verify database username and password
+   - Ensure the App Engine service account has access to Cloud SQL
 
-2. **API连接失败**
-   - 检查本地电商平台API URL
-   - 验证API密钥
-   - 检查网络连接（防火墙、VPN等）
+2. **API connection failure**
+   - Check the local e-commerce platform API URL
+   - Verify the API key
+   - Check network connections (firewalls, VPN, etc.)
 
-3. **部署失败**
-   - 检查app.yaml配置
-   - 验证所有必要的API都已启用
-   - 检查服务账号权限
+3. **Deployment failure**
+   - Check the app.yaml configuration
+   - Verify all necessary APIs are enabled
+   - Check service account permissions
 
-### 获取帮助
+### Getting Help
 
-如果您遇到问题，可以：
-1. 查看App Engine日志
+If you encounter issues, you can:
+1. View App Engine logs
    ```bash
    gcloud app logs tail
    ```
 
-2. 检查Cloud SQL日志
+2. Check Cloud SQL logs
    ```bash
    gcloud logging read "resource.type=cloudsql_database"
    ```
 
-3. 联系我们的技术支持团队
+3. Contact our technical support team
 
-## 安全最佳实践
+## Security Best Practices
 
-1. 定期更新所有密钥和密码
-2. 启用Cloud Audit Logging
-3. 实施最小权限原则
-4. 定期审查防火墙规则
-5. 启用VPC Service Controls（企业版）
+1. Regularly update all keys and passwords
+2. Enable Cloud Audit Logging
+3. Implement the principle of least privilege
+4. Regularly review firewall rules
+5. Enable VPC Service Controls (Enterprise Edition)
 
-## 成本优化
+## Cost Optimization
 
-1. 设置预算提醒
+1. Set up budget alerts
    ```bash
    gcloud billing budgets create \
        --billing-account=YOUR_BILLING_ACCOUNT_ID \
@@ -314,12 +314,12 @@
        --threshold-rule=percent=0.8
    ```
 
-2. 使用App Engine自动扩缩
-3. 选择合适的Cloud SQL实例大小
-4. 设置非活动实例自动休眠
+2. Use App Engine auto-scaling
+3. Choose appropriate Cloud SQL instance sizes
+4. Set up automatic idle instance sleep
 
-## 结论
+## Conclusion
 
-恭喜！您已成功将Gemiturn AI分析系统部署到Google Cloud Platform。系统现在可以从本地电商平台获取退货数据，进行AI分析，并将结果返回给电商平台。
+Congratulations! You have successfully deployed the Gemiturn AI Analysis System on Google Cloud Platform. The system can now retrieve return data from your local e-commerce platform, perform AI analysis, and return results to the e-commerce platform.
 
-如需进一步的帮助或自定义部署，请联系我们的技术支持团队。 
+For further assistance or custom deployments, please contact our technical support team. 
