@@ -1,4 +1,7 @@
 # Gemiturn AI Analysis System
+<div>
+<img src="https://readme-typing-svg.demolab.com/?pause=1&size=50&color=f75c7e&center=True&width=1200&height=120&vCenter=True&lines=Gemiturn+AI+Analysis+System.;Power+By+Gemini+AI" />
+</div>
 
 <p align="center">
   <img src="frontend/public/logo1.png" alt="Gemiturn Logo" width="200">
