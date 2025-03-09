@@ -17,6 +17,9 @@ class ReturnItem(db.Model):
     # AI analysis results
     ai_analysis = db.Column(db.JSON)
     
+    # Image URLs
+    image_urls = db.Column(db.JSON, default=list)
+    
     # Status tracking
     status = db.Column(db.String(20), default='pending')  # pending, processing, completed
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -36,6 +39,7 @@ class ReturnItem(db.Model):
             'customer_description': self.customer_description,
             'original_price': self.original_price,
             'ai_analysis': self.ai_analysis,
+            'image_urls': self.image_urls,
             'status': self.status,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()

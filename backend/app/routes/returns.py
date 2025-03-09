@@ -6,6 +6,8 @@ from app.services.gemini_service import GeminiService
 import time
 from sqlalchemy import or_, text
 from datetime import datetime
+from app.services.storage_service import StorageService
+import json
 
 bp = Blueprint('returns', __name__)
 gemini_service = GeminiService()
@@ -75,26 +77,26 @@ def analyze_all_returns():
                         analyzed_count += 1
                     else:
                         return_item.ai_analysis = {
-                            'category': '未分类',
-                            'reason': '分析结果格式不完整',
-                            'recommendation': '人工审核',
+                            'category': 'Uncategorized',
+                            'reason': 'Incomplete analysis result format',
+                            'recommendation': 'Manual Review',
                             'confidence': 0.0
                         }
                         failed_count += 1
                 else:
                     return_item.ai_analysis = {
-                        'category': '未分类',
-                        'reason': '分析结果格式错误',
-                        'recommendation': '人工审核',
+                        'category': 'Uncategorized',
+                        'reason': 'Incorrect analysis result format',
+                        'recommendation': 'Manual Review',
                         'confidence': 0.0
                     }
                     failed_count += 1
             except Exception as e:
-                print(f"分析退货记录 {return_item.id} 失败: {str(e)}")
+                print(f"Failed to analyze return record {return_item.id}: {str(e)}")
                 return_item.ai_analysis = {
-                    'category': '未分类',
-                    'reason': f'分析失败: {str(e)}',
-                    'recommendation': '人工审核',
+                    'category': 'Uncategorized',
+                    'reason': f'Analysis failed: {str(e)}',
+                    'recommendation': 'Manual Review',
                     'confidence': 0.0
                 }
                 failed_count += 1
@@ -135,12 +137,35 @@ def create_return():
             
             # Get images
             images = []
+            image_urls = []
             if 'images' in request.files:
+                storage_service = StorageService()
+                
                 for image in request.files.getlist('images'):
-                    images.append(image.read())
+                    image_data = image.read()
+                    images.append(image_data)
+                    
+                    # Upload image to storage and get URL
+                    try:
+                        image_url = storage_service.upload_file(
+                            file_data=image_data,
+                            original_filename=image.filename,
+                            folder=f'returns/{order_id}'
+                        )
+                        image_urls.append(image_url)
+                    except Exception as e:
+                        print(f"Failed to upload image: {str(e)}")
                     
             # Front-end passed AI analysis result
+            ai_analysis_str = request.form.get('ai_analysis')
             ai_analysis = None
+            if ai_analysis_str:
+                try:
+                    print(f"AI analysis string from form: {ai_analysis_str}")
+                    ai_analysis = json.loads(ai_analysis_str)
+                    print(f"Parsed AI analysis: {ai_analysis}")
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse AI analysis JSON: {str(e)}")
         else:
             # Handle JSON data
             data = request.get_json()
@@ -158,6 +183,7 @@ def create_return():
             customer_description = data.get('customer_description')
             original_price = float(data.get('original_price', 0))
             images = []
+            image_urls = data.get('image_urls', [])
             
             # Front-end passed AI analysis result
             ai_analysis = data.get('ai_analysis')
@@ -178,24 +204,57 @@ def create_return():
             return_reason=return_reason,
             customer_description=customer_description,
             original_price=original_price,
-            status='pending'
+            status='pending',
+            image_urls=image_urls
         )
         
         # If front-end has already passed AI analysis result, use it directly
         if ai_analysis and isinstance(ai_analysis, dict):
-            return_item.ai_analysis = {
-                'category': ai_analysis.get('category', 'Uncategorized'),
-                'reason': ai_analysis.get('reason', 'Not analyzed'),
-                'recommendation': ai_analysis.get('recommendation', 'Manual review'),
-                'confidence': float(ai_analysis.get('confidence', 0.0))
-            }
+            try:
+                # Validate required fields
+                required_fields = ['category', 'reason', 'recommendation', 'confidence']
+                if all(field in ai_analysis for field in required_fields):
+                    return_item.ai_analysis = {
+                        'category': ai_analysis.get('category', 'Uncategorized'),
+                        'reason': ai_analysis.get('reason', 'Not analyzed'),
+                        'recommendation': ai_analysis.get('recommendation', 'Manual review'),
+                        'confidence': float(ai_analysis.get('confidence', 0.0))
+                    }
+                else:
+                    # If missing required fields, log warning and use default values
+                    missing_fields = [field for field in required_fields if field not in ai_analysis]
+                    print(f"AI analysis missing required fields: {', '.join(missing_fields)}")
+                    return_item.ai_analysis = {
+                        'category': 'Uncategorized',
+                        'reason': 'Incomplete analysis result',
+                        'recommendation': 'Manual review',
+                        'confidence': 0.0
+                    }
+            except Exception as e:
+                print(f"Error processing AI analysis: {str(e)}")
+                return_item.ai_analysis = {
+                    'category': 'Uncategorized',
+                    'reason': f'Error processing analysis: {str(e)}',
+                    'recommendation': 'Manual review',
+                    'confidence': 0.0
+                }
         # Otherwise use Gemini for analysis
         else:
             try:
                 # Use image analysis if there are images, otherwise use text analysis
                 if images:
-                    # Here assume there's a separate API endpoint to handle AI analysis
-                    analysis_result = None
+                    # Use categorize_return method for image analysis
+                    product_info = {
+                        'name': product_name,
+                        'category': product_category,
+                        'return_reason': return_reason
+                    }
+                    
+                    analysis_result = gemini_service.categorize_return(
+                        image_data=images,
+                        description=customer_description,
+                        product_info=product_info
+                    )
                 else:
                     analysis_result = gemini_service.analyze_return(
                         product_name=product_name,

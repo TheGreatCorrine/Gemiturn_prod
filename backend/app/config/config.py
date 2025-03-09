@@ -21,10 +21,14 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Google Cloud
-    GCP_PROJECT_ID = os.environ.get('GCP_PROJECT_ID')
-    GCP_STORAGE_BUCKET = os.environ.get('GCP_STORAGE_BUCKET')
+    GCP_PROJECT_ID = os.getenv('GCP_PROJECT_ID', '')
+    GCP_STORAGE_BUCKET = os.getenv('GCP_STORAGE_BUCKET', '')
     GCP_REGION = os.environ.get('GCP_REGION', 'us-central1')
     GCP_CREDENTIALS_FILE = os.environ.get('GCP_CREDENTIALS_FILE')
+    
+    # Local Storage
+    USE_LOCAL_STORAGE = os.getenv('USE_LOCAL_STORAGE', 'True').lower() in ('true', '1', 't')
+    LOCAL_STORAGE_PATH = os.getenv('LOCAL_STORAGE_PATH', 'uploads')
     
     # Gemini API
     GOOGLE_API_KEY = os.environ.get('GEMINI_API_KEY')

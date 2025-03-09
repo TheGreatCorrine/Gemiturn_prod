@@ -44,6 +44,7 @@ interface ReturnItem {
   resale_price?: number | null;
   created_at: string;
   updated_at: string;
+  image_urls?: string[];
 }
 
 const ReturnDetail: React.FC = () => {
@@ -66,7 +67,7 @@ const ReturnDetail: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          setError('未找到认证令牌，请先登录');
+          setError('Authentication token not found, please login first');
           setLoading(false);
           return;
         }
@@ -81,18 +82,18 @@ const ReturnDetail: React.FC = () => {
         });
         
         if (!response.ok) {
-          throw new Error(`获取退货订单详情失败: ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to get return order details: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log('获取到的退货订单详情:', data);
+        console.log('Return order details received:', data);
         
         setReturnItem(data);
         setStatus(data.status);
         setResalePrice(data.resale_price);
       } catch (err: any) {
-        console.error('获取退货订单详情错误:', err);
-        setError(err.message || '获取退货订单详情失败');
+        console.error('Error getting return order details:', err);
+        setError(err.message || 'Failed to get return order details');
       } finally {
         setLoading(false);
       }
@@ -119,7 +120,7 @@ const ReturnDetail: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('未找到认证令牌，请先登录');
+        setError('Authentication token not found, please login first');
         return;
       }
       
@@ -138,7 +139,7 @@ const ReturnDetail: React.FC = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`更新退货订单失败: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to update return order: ${response.status} ${response.statusText}`);
       }
       
       const updatedData = await response.json();
@@ -150,8 +151,8 @@ const ReturnDetail: React.FC = () => {
         setSaveSuccess(false);
       }, 3000);
     } catch (err: any) {
-      console.error('更新退货订单错误:', err);
-      setError(err.message || '更新退货订单失败');
+      console.error('Error updating return order:', err);
+      setError(err.message || 'Failed to update return order');
     }
   };
 
@@ -208,7 +209,7 @@ const ReturnDetail: React.FC = () => {
           onClick={() => navigate('/returns')}
           sx={{ mt: 2 }}
         >
-          返回列表
+          Back to List
         </Button>
       </Box>
     );
@@ -217,13 +218,13 @@ const ReturnDetail: React.FC = () => {
   if (!returnItem) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="warning">未找到退货订单</Alert>
+        <Alert severity="warning">Return order not found</Alert>
         <Button 
           variant="contained" 
           onClick={() => navigate('/returns')}
           sx={{ mt: 2 }}
         >
-          返回列表
+          Back to List
         </Button>
       </Box>
     );
@@ -233,16 +234,16 @@ const ReturnDetail: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          退货订单详情 #{id}
+          Return Order Details #{id}
         </Typography>
         <Button variant="outlined" onClick={() => navigate('/returns')}>
-          返回列表
+          Back to List
         </Button>
       </Box>
 
       {saveSuccess && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          更新成功
+          Update Successful
         </Alert>
       )}
 
@@ -251,14 +252,14 @@ const ReturnDetail: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              基本信息
+              Basic Information
             </Typography>
             <Divider sx={{ mb: 2 }} />
             
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  订单编号
+                  Order ID
                 </Typography>
                 <Typography variant="body1">
                   {returnItem.order_id}
@@ -266,7 +267,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  商品编号
+                  Product ID
                 </Typography>
                 <Typography variant="body1">
                   {returnItem.product_id}
@@ -274,7 +275,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  商品名称
+                  Product Name
                 </Typography>
                 <Typography variant="body1">
                   {returnItem.product_name}
@@ -282,7 +283,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  商品类别
+                  Product Category
                 </Typography>
                 <Typography variant="body1">
                   {returnItem.product_category}
@@ -290,7 +291,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  原始价格
+                  Original Price
                 </Typography>
                 <Typography variant="body1">
                   ¥{returnItem.original_price.toFixed(2)}
@@ -298,7 +299,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  状态
+                  Status
                 </Typography>
                 <Chip 
                   label={getStatusText(returnItem.status)} 
@@ -308,7 +309,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  创建时间
+                  Created At
                 </Typography>
                 <Typography variant="body1">
                   {formatDate(returnItem.created_at)}
@@ -316,7 +317,7 @@ const ReturnDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
-                  更新时间
+                  Updated At
                 </Typography>
                 <Typography variant="body1">
                   {formatDate(returnItem.updated_at)}
@@ -326,23 +327,54 @@ const ReturnDetail: React.FC = () => {
           </Paper>
         </Grid>
 
+        {/* Product Images */}
+        {returnItem.image_urls && returnItem.image_urls.length > 0 && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Product Images
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                {returnItem.image_urls.map((url, index) => (
+                  <Box 
+                    key={index}
+                    component="img"
+                    src={url}
+                    alt={`Product image ${index + 1}`}
+                    sx={{ 
+                      width: 200, 
+                      height: 200, 
+                      objectFit: 'cover',
+                      borderRadius: 1,
+                      border: '1px solid #eee'
+                    }}
+                    onClick={() => window.open(url, '_blank')}
+                  />
+                ))}
+              </Box>
+            </Paper>
+          </Grid>
+        )}
+
         {/* Customer Information */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              退货原因
+              Return Reason
             </Typography>
             <Divider sx={{ mb: 2 }} />
             
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              客户提供的原因
+              Customer Provided Reason
             </Typography>
             <Typography variant="body1" paragraph>
               {returnItem.return_reason}
             </Typography>
             
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              客户描述
+              Customer Description
             </Typography>
             <Typography variant="body1" paragraph>
               {returnItem.customer_description}
@@ -354,17 +386,17 @@ const ReturnDetail: React.FC = () => {
         <Grid item xs={12}>
           <Card>
             <CardHeader 
-              title="AI 分析结果" 
+              title="AI Analysis Results" 
               subheader={returnItem.ai_analysis ? 
                 `Confidence: ${(returnItem.ai_analysis.confidence * 100).toFixed(0)}%` : 
-                '无AI分析结果'}
+                'No AI Analysis Results'}
             />
             <CardContent>
               {returnItem.ai_analysis ? (
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={4}>
                     <Typography variant="body2" color="text.secondary">
-                      分类
+                      Category
                     </Typography>
                     <Typography variant="body1">
                       {returnItem.ai_analysis.category}
@@ -372,7 +404,7 @@ const ReturnDetail: React.FC = () => {
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Typography variant="body2" color="text.secondary">
-                      原因
+                      Reason
                     </Typography>
                     <Typography variant="body1">
                       {returnItem.ai_analysis.reason}
@@ -380,7 +412,7 @@ const ReturnDetail: React.FC = () => {
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Typography variant="body2" color="text.secondary">
-                      建议
+                      Recommendation
                     </Typography>
                     <Chip 
                       label={returnItem.ai_analysis.recommendation}
@@ -395,17 +427,10 @@ const ReturnDetail: React.FC = () => {
                       ''}
                     </Typography>
                   </Grid>
-                  {returnItem.ai_analysis?.category && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        Category: {returnItem.ai_analysis.category}
-                      </Typography>
-                    </Grid>
-                  )}
                 </Grid>
               ) : (
                 <Typography variant="body1" color="text.secondary">
-                  该退货订单没有AI分析结果
+                  This return order has no AI analysis results
                 </Typography>
               )}
             </CardContent>

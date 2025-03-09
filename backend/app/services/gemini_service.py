@@ -52,12 +52,12 @@ class GeminiService(AIServiceInterface):
             
             # 准备提示词
             if not prompt:
-                prompt = """请详细分析这张图片中的产品，包括：
-1. 产品状况（是否有损坏、缺陷）
-2. 外观特征（颜色、形状、材质）
-3. 使用痕迹（如果有）
-4. 包装情况（如果可见）
-请用中文回答。"""
+                prompt = """Please analyze this product image in detail, including:
+1. Product condition (any damage or defects)
+2. Appearance features (color, shape, material)
+3. Signs of use (if any)
+4. Packaging condition (if visible)
+Please answer in English."""
             
             # 调用 Gemini API
             response = self.vision_model.generate_content([prompt, image])
@@ -68,11 +68,11 @@ class GeminiService(AIServiceInterface):
                 "success": True
             }
             
-            logger.info("图像分析完成")
+            logger.info("Image analysis completed")
             return result
             
         except Exception as e:
-            logger.error(f"图像分析失败: {str(e)}")
+            logger.error(f"Image analysis failed: {str(e)}")
             return {
                 "analysis": "",
                 "error": str(e),
@@ -93,29 +93,29 @@ class GeminiService(AIServiceInterface):
         try:
             # 准备提示词
             if context:
-                prompt = f"""基于以下上下文和文本进行分析：
+                prompt = f"""Based on the following context and text, please analyze:
 
-上下文信息：
+Context information:
 {context}
 
-客户描述：
+Customer description:
 {text}
 
-请提供：
-1. 主要问题概述
-2. 可能的原因分析
-3. 处理建议
-请用中文回答。"""
+Please provide:
+1. Summary of the main issue
+2. Analysis of possible causes
+3. Handling suggestions
+Please answer in English."""
             else:
-                prompt = f"""请分析以下客户描述：
+                prompt = f"""Please analyze the following customer description:
 
 {text}
 
-请提供：
-1. 主要问题概述
-2. 可能的原因分析
-3. 处理建议
-请用中文回答。"""
+Please provide:
+1. Summary of the main issue
+2. Analysis of possible causes
+3. Handling suggestions
+Please answer in English."""
             
             # 调用 Gemini API
             response = self.text_model.generate_content(prompt)
@@ -126,11 +126,11 @@ class GeminiService(AIServiceInterface):
                 "success": True
             }
             
-            logger.info("文本分析完成")
+            logger.info("Text analysis completed")
             return result
             
         except Exception as e:
-            logger.error(f"文本分析失败: {str(e)}")
+            logger.error(f"Text analysis failed: {str(e)}")
             return {
                 "analysis": "",
                 "error": str(e),
@@ -190,6 +190,8 @@ class GeminiService(AIServiceInterface):
             "recommendation": "Handling recommendation",
             "confidence": 0.95
         }
+        
+        Do not include any other text or explanation outside of the JSON object.
         """
         
         # Call Gemini API for analysis
@@ -198,14 +200,63 @@ class GeminiService(AIServiceInterface):
         try:
             # Clean response text, remove Markdown formatting
             text = response.text.strip()
-            if text.startswith('```'):
-                text = text.split('```')[1]
-                if text.startswith('json'):
-                    text = text[4:]
-            text = text.strip()
             
-            # Parse JSON string
-            analysis_result = json.loads(text)
+            # Try to extract JSON from the response
+            try:
+                # First try direct JSON parsing
+                analysis_result = json.loads(text)
+            except json.JSONDecodeError:
+                # If that fails, try to extract JSON from markdown code blocks
+                if '```' in text:
+                    # Extract code block content
+                    parts = text.split('```')
+                    for i in range(1, len(parts), 2):
+                        if i < len(parts):
+                            code_part = parts[i]
+                            # If code block is marked as json, remove the marker
+                            if code_part.startswith('json'):
+                                code_part = code_part[4:].strip()
+                            # Try to parse the code block as JSON
+                            try:
+                                analysis_result = json.loads(code_part)
+                                break
+                            except json.JSONDecodeError:
+                                continue
+                    else:
+                        # If no valid JSON found in code blocks, try to find JSON-like structure
+                        json_start = text.find('{')
+                        json_end = text.rfind('}') + 1
+                        if json_start >= 0 and json_end > json_start:
+                            try:
+                                analysis_result = json.loads(text[json_start:json_end])
+                            except json.JSONDecodeError:
+                                raise Exception("Could not parse JSON from response")
+                        else:
+                            raise Exception("No JSON structure found in response")
+                else:
+                    # If no code blocks, try to find JSON-like structure
+                    json_start = text.find('{')
+                    json_end = text.rfind('}') + 1
+                    if json_start >= 0 and json_end > json_start:
+                        try:
+                            analysis_result = json.loads(text[json_start:json_end])
+                        except json.JSONDecodeError:
+                            raise Exception("Could not parse JSON from response")
+                    else:
+                        raise Exception("No JSON structure found in response")
+            
+            # Validate the analysis result
+            required_fields = ['category', 'reason', 'recommendation', 'confidence']
+            if not all(field in analysis_result for field in required_fields):
+                missing_fields = [field for field in required_fields if field not in analysis_result]
+                raise Exception(f"Missing required fields in analysis result: {', '.join(missing_fields)}")
+            
+            # Ensure confidence is a float
+            try:
+                analysis_result['confidence'] = float(analysis_result['confidence'])
+            except (ValueError, TypeError):
+                analysis_result['confidence'] = 0.0
+                
             return analysis_result
             
         except Exception as e:
@@ -220,118 +271,189 @@ class GeminiService(AIServiceInterface):
     def categorize_return(self, image_data: List[bytes], description: str, 
                          product_info: Dict[str, Any]) -> Dict[str, Any]:
         """
-        使用 Gemini 对退货进行分类
+        Use Gemini to categorize return items
         
         Args:
-            image_data (List[bytes]): 图像数据列表
-            description (str): 客户描述
-            product_info (Dict[str, Any]): 产品信息
+            image_data (List[bytes]): List of image data
+            description (str): Customer description
+            product_info (Dict[str, Any]): Product information
             
         Returns:
-            Dict[str, Any]: 分类结果，包括类别、原因、建议和置信度
+            Dict[str, Any]: Classification result including category, reason, recommendation and confidence
         """
         try:
-            # 准备图像
-            images = [Image.open(io.BytesIO(img)) for img in image_data]
+            # Prepare images
+            images = []
+            for img in image_data:
+                try:
+                    images.append(Image.open(io.BytesIO(img)))
+                except Exception as e:
+                    logger.warning(f"Failed to open image: {str(e)}")
             
-            # 准备提示词
+            # If no valid images, return default result
+            if not images:
+                logger.warning("No valid images provided for analysis")
+                return {
+                    "category": "Uncategorized",
+                    "reason": "No valid images provided",
+                    "recommendation": "Manual Review",
+                    "confidence": 0.0
+                }
+            
+            # Prepare prompt
             product_info_str = "\n".join([f"{k}: {v}" for k, v in product_info.items()])
             
-            prompt = f"""作为退货分析专家，请分析这张图片并提供以下信息：
+            prompt = f"""As a return analysis expert, please analyze this image and provide the following information:
 
-产品信息:
+1. Product information:
 {product_info_str}
 
-客户描述:
+2. Customer description:
 {description}
 
-请提供以下分析（JSON格式）：
+Please analyze the return reason and categorize it into one of the following categories:
+- Quality Issues
+- Size Mismatch
+- Appearance Difference
+- Performance Below Expectations
+- Wrong Item Received
+- Logistics Issues
+- Customer Changed Mind
+- Missing Accessories
+- Allergic/Adverse Reaction
+- Delayed Delivery
 
-1. 退货原因分类（参考以下类别）：
-   - 质量问题
-   - 尺寸不合适
-   - 外观差异
-   - 性能不达标
-   - 收到错误商品
-   - 物流问题
-   - 客户改变主意
-   - 配件缺失
-   - 过敏/不良反应
-   - 延迟交付
+Based on your analysis, please recommend one of the following handling methods:
+- Direct Resale
+- Discounted Sale
+- Return to Supplier
+- Repair and Resell
+- Parts Recycling
+- Charity Donation
+- Environmental Disposal
+- Cross-platform Direct Sales
+- Bundle Sales
+- Convert to Sample/Display Item
 
-2. 建议处理方式（参考以下方法）：
-   - 直接转售
-   - 折价销售
-   - 退回供应商
-   - 维修后销售
-   - 零件回收
-   - 慈善捐赠
-   - 环保处理
-   - 跨平台直接销售
-   - 打包销售
-   - 转为样品/展示品
-
-请以JSON格式返回结果：
+Please provide your analysis in the following JSON format:
 {{
-    "category": "退货类别",
-    "reason": "具体原因",
-    "recommendation": "处理建议",
-    "confidence": 0.95
-}}"""
+    "category": "Category name",
+    "reason": "Detailed explanation of the return reason",
+    "recommendation": "Handling method",
+    "confidence": 0.95 (a number between 0 and 1)
+}}
+
+Please respond in English only. Do not include any other text or explanation outside of the JSON object.
+"""
             
-            # 调用 Gemini API
-            response = self.vision_model.generate_content([prompt] + images)
-            
-            # 尝试从响应中提取 JSON
+            # Call Gemini API
             try:
-                # 清理响应文本，识别和处理可能的Markdown代码块
-                text = response.text.strip()
-                
-                # 检查是否有Markdown代码块，如：```json {...} ```
+                response = self.vision_model.generate_content([prompt] + images)
+                text = response.text
+                logger.info(f"Gemini response: {text}")
+            except Exception as e:
+                logger.error(f"Gemini API call failed: {str(e)}")
+                return {
+                    "category": "Uncategorized",
+                    "reason": f"Gemini API call failed: {str(e)}",
+                    "recommendation": "Manual Review",
+                    "confidence": 0.0
+                }
+            
+            # Try to extract JSON from the response
+            try:
+                # First try direct JSON parsing
+                result = json.loads(text)
+            except json.JSONDecodeError:
+                # If that fails, try to extract JSON from markdown code blocks
                 if '```' in text:
-                    # 提取代码块内容
+                    # Extract code block content
                     parts = text.split('```')
-                    for i in range(1, len(parts), 2):  # 奇数索引包含代码块内容
+                    for i in range(1, len(parts), 2):
                         if i < len(parts):
                             code_part = parts[i]
-                            # 如果代码块标记为json或未标记，尝试解析
+                            # If code block is marked as json, remove the marker
                             if code_part.startswith('json'):
-                                code_part = code_part[4:].strip()  # 删除'json'标记
-                            elif code_part.startswith('{') and '}' in code_part:
-                                code_part = code_part.strip()
-                                
-                            # 尝试解析JSON
-                            if code_part.startswith('{') and '}' in code_part:
-                                json_start = code_part.find('{')
-                                json_end = code_part.rfind('}') + 1
-                                json_str = code_part[json_start:json_end]
-                                result = json.loads(json_str)
+                                code_part = code_part[4:].strip()
+                            # Try to parse the code block as JSON
+                            try:
+                                result = json.loads(code_part)
                                 break
+                            except json.JSONDecodeError:
+                                continue
+                    else:
+                        # If no valid JSON found in code blocks, try to find JSON-like structure
+                        json_start = text.find('{')
+                        json_end = text.rfind('}') + 1
+                        if json_start >= 0 and json_end > json_start:
+                            try:
+                                result = json.loads(text[json_start:json_end])
+                            except json.JSONDecodeError:
+                                logger.error("Could not parse JSON from response")
+                                return {
+                                    "category": "Uncategorized",
+                                    "reason": "Could not parse JSON from response",
+                                    "recommendation": "Manual Review",
+                                    "confidence": 0.0
+                                }
+                        else:
+                            logger.error("No JSON structure found in response")
+                            return {
+                                "category": "Uncategorized",
+                                "reason": "No JSON structure found in response",
+                                "recommendation": "Manual Review",
+                                "confidence": 0.0
+                            }
                 else:
-                    # 没有Markdown代码块，直接查找JSON对象
+                    # If no code blocks, try to find JSON-like structure
                     json_start = text.find('{')
                     json_end = text.rfind('}') + 1
-                    
                     if json_start >= 0 and json_end > json_start:
-                        json_str = text[json_start:json_end]
-                        result = json.loads(json_str)
+                        try:
+                            result = json.loads(text[json_start:json_end])
+                        except json.JSONDecodeError:
+                            logger.error("Could not parse JSON from response")
+                            return {
+                                "category": "Uncategorized",
+                                "reason": "Could not parse JSON from response",
+                                "recommendation": "Manual Review",
+                                "confidence": 0.0
+                            }
                     else:
-                        # 如果没有找到JSON，尝试结构化分析文本
-                        result = self._extract_structured_data(text)
-            except json.JSONDecodeError as e:
-                # 如果JSON解析失败，记录错误并尝试结构化分析文本
-                logger.error(f"JSON解析失败: {str(e)}，原始文本: {text}")
-                result = self._extract_structured_data(response.text)
+                        logger.error("No JSON structure found in response")
+                        return {
+                            "category": "Uncategorized",
+                            "reason": "No JSON structure found in response",
+                            "recommendation": "Manual Review",
+                            "confidence": 0.0
+                        }
             
-            logger.info("退货分类完成")
+            # Validate the result
+            required_fields = ['category', 'reason', 'recommendation', 'confidence']
+            if not all(field in result for field in required_fields):
+                missing_fields = [field for field in required_fields if field not in result]
+                logger.error(f"Missing required fields in result: {missing_fields}")
+                return {
+                    "category": "Uncategorized",
+                    "reason": f"Missing required fields in result: {', '.join(missing_fields)}",
+                    "recommendation": "Manual Review",
+                    "confidence": 0.0
+                }
+            
+            # Ensure confidence is a float
+            try:
+                result['confidence'] = float(result['confidence'])
+            except (ValueError, TypeError):
+                result['confidence'] = 0.0
+            
             return result
             
         except Exception as e:
-            logger.error(f"退货分类失败: {str(e)}")
+            logger.error(f"Return categorization failed: {str(e)}")
             return {
-                "category": "未分类",
-                "reason": f"分析失败: {str(e)}",
-                "recommendation": "人工审核",
+                "category": "Uncategorized",
+                "reason": f"Analysis failed: {str(e)}",
+                "recommendation": "Manual Review",
                 "confidence": 0.0
             }
     
@@ -350,20 +472,20 @@ class GeminiService(AIServiceInterface):
             content = []
             
             # 准备提示词
-            prompt = f"""请根据以下信息生成相关标签：
+            prompt = f"""Please generate relevant tags based on the following information:
 
-描述:
+Description:
 {text}
 
-要求：
-1. 生成5-10个相关标签
-2. 每个标签应该简短精确
-3. 标签应该涵盖产品类型、问题类型、处理方式等
-4. 只返回标签列表，用逗号分隔
-5. 请用中文回答
+Requirements:
+1. Generate 5-10 relevant tags
+2. Each tag should be short and precise
+3. Tags should cover product type, issue type, handling method, etc.
+4. Only return the list of tags, separated by commas
+5. Please answer in English
 
-示例输出：
-电子产品,屏幕损坏,保修期内,需要维修,二手可用"""
+Example output:
+Electronics, screen damage, within warranty, repair required, resellable"""
             
             content.append(prompt)
             
@@ -379,12 +501,12 @@ class GeminiService(AIServiceInterface):
             tags_text = response.text.strip()
             tags = [tag.strip() for tag in tags_text.split(',')]
             
-            logger.info(f"生成了 {len(tags)} 个标签")
+            logger.info(f"Generated {len(tags)} tags")
             return tags
             
         except Exception as e:
-            logger.error(f"标签生成失败: {str(e)}")
-            return ["分析失败"]
+            logger.error(f"Tag generation failed: {str(e)}")
+            return ["Analysis failed"]
     
     def suggest_action(self, return_data: Dict[str, Any]) -> Tuple[str, float]:
         """
@@ -400,23 +522,23 @@ class GeminiService(AIServiceInterface):
             # 准备提示词
             return_data_str = json.dumps(return_data, ensure_ascii=False, indent=2)
             
-            prompt = f"""请根据以下退货数据，建议最佳处理方式：
+            prompt = f"""Please suggest the best handling method based on the following return data:
 
 {return_data_str}
 
-请从以下选项中选择一个处理方式，并给出置信度：
+Please choose one handling method from the following options and provide a confidence level:
 
-处理方式选项：
-- 接受退货
-- 拒绝退货
-- 部分退款
-- 更换商品
-- 维修处理
-- 人工审核
+Handling method options:
+- Accept return
+- Reject return
+- Partial refund
+- Replace product
+- Repair and handle
+- Manual review
 
-请只返回以下格式：
-处理方式: [你的选择]
-置信度: [0-1之间的数值]"""
+Please only return in the following format:
+Handling method: [your choice]
+Confidence: [value between 0 and 1]"""
             
             # 调用 Gemini API
             response = self.text_model.generate_content(prompt)
@@ -428,23 +550,23 @@ class GeminiService(AIServiceInterface):
             confidence = 0.0
             
             for line in text.split('\n'):
-                if line.startswith('处理方式:'):
+                if line.startswith('Handling method:'):
                     action = line.split(':', 1)[1].strip()
-                elif line.startswith('置信度:'):
+                elif line.startswith('Confidence:'):
                     try:
                         confidence = float(line.split(':', 1)[1].strip())
                     except ValueError:
                         confidence = 0.5
             
             if not action:
-                action = "人工审核"
+                action = "Manual review"
             
-            logger.info(f"建议处理方式: {action}, 置信度: {confidence}")
+            logger.info(f"Suggested handling method: {action}, confidence: {confidence}")
             return action, confidence
             
         except Exception as e:
-            logger.error(f"处理建议生成失败: {str(e)}")
-            return "人工审核", 0.0
+            logger.error(f"Handling suggestion generation failed: {str(e)}")
+            return "Manual review", 0.0
     
     def _extract_structured_data(self, text: str) -> Dict[str, Any]:
         """
@@ -536,17 +658,17 @@ def analyze_return_images(images, description=""):
             
         # 构建提示词
         prompt = f"""
-        作为一个专业的退货分析专家，请分析以下图片和描述，给出专业的退货建议：
+        As a professional return analysis expert, please analyze the following images and description, and provide professional return suggestions:
 
-        用户描述：{description if description else '用户未提供描述'}
+        User description: {description if description else 'User did not provide a description'}
 
-        请提供以下信息：
-        1. 产品状况分析
-        2. 退货原因分类
-        3. 处理建议
-        4. 预防措施
+        Please provide the following information:
+        1. Product condition analysis
+        2. Return reason classification
+        3. Handling suggestions
+        4. Preventive measures
 
-        请用中文回答，并保持专业性。
+        Please answer in English and maintain professionalism.
         """
         
         # 调用 Gemini API
@@ -559,5 +681,5 @@ def analyze_return_images(images, description=""):
         }
         
     except Exception as e:
-        logger.error(f"分析图片时出错: {str(e)}")
-        raise Exception(f"分析图片时出错: {str(e)}") 
+        logger.error(f"Error analyzing images: {str(e)}")
+        raise Exception(f"Error analyzing images: {str(e)}") 

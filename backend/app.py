@@ -17,6 +17,13 @@ genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 # 创建模型实例
 model = genai.GenerativeModel('gemini-2.0-flash-lite')
 
+# Configure app
+app.config.from_object(Config)
+
+# Configure local storage
+app.config['USE_LOCAL_STORAGE'] = True
+app.config['LOCAL_STORAGE_PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+
 @app.route('/')
 def index():
     return render_template('index.html')
