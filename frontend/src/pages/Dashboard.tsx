@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Paper, Button, CircularProgress, Snackbar, Alert, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Box, Typography, Grid, Paper, Button, CircularProgress, Snackbar, Alert, List, ListItem, ListItemIcon, ListItemText, IconButton } from '@mui/material';
 import { 
   TrendingUp as TrendingUpIcon, 
   Schedule as ScheduleIcon,
@@ -13,9 +13,17 @@ import {
   CancelOutlined as CancelOutlinedIcon,
   AccessTime as AccessTimeIcon,
   MonetizationOn as MonetizationOnIcon,
-  NotificationsActive as NotificationsActiveIcon
+  NotificationsActive as NotificationsActiveIcon,
+  ArrowForward as ArrowForwardIcon,
+  ShoppingBag as ShoppingBagIcon,
+  Pending as PendingIcon,
+  Settings as SettingsIcon,
+  Check as CheckIcon,
+  AttachMoney as AttachMoneyIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { analyticsAPI, testAPI } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface SummaryData {
   pending_count: number;
@@ -55,6 +63,7 @@ const Dashboard: React.FC = () => {
     message: '',
     severity: 'success'
   });
+  const navigate = useNavigate();
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -117,30 +126,6 @@ const Dashboard: React.FC = () => {
       setRecentActivity(newActivity.slice(0, 5));
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create test return item
-  const handleCreateTestReturn = async () => {
-    setLoading(true);
-    try {
-      await testAPI.createTestReturn();
-      setSnackbar({
-        open: true,
-        message: 'Test return item created successfully!',
-        severity: 'success'
-      });
-      fetchDashboardData(); // Refresh data after creating test return
-    } catch (error) {
-      console.error('Error creating test return:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to create test return item.',
-        severity: 'error'
-      });
     } finally {
       setLoading(false);
     }
@@ -187,292 +172,170 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // 刷新处理函数
+  const handleRefresh = () => {
+    fetchDashboardData();
+  };
+
   return (
     <Box>
-      {/* Test button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleCreateTestReturn}
-          sx={{ borderRadius: 2 }}
-        >
-          Create Test Return
-        </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">
+          Overview
+        </Typography>
+        <Box>
+          <IconButton onClick={handleRefresh} size="small" sx={{ ml: 1 }}>
+            <RefreshIcon />
+          </IconButton>
+        </Box>
       </Box>
-
-      {/* Statistics Cards */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
+      
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Paper 
             elevation={0} 
             sx={{ 
-              p: 2, 
+              p: 2,
               borderRadius: 2,
               boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
               border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
+              borderLeft: '4px solid #1a73e8',
+              height: '100%'
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Box 
-                sx={{ 
-                  backgroundColor: 'rgba(66, 133, 244, 0.1)', 
-                  borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 1.5
-                }}
-              >
-                <ScheduleIcon sx={{ color: '#4285f4', fontSize: '1.125rem' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 0, 
+                right: 0, 
+                bgcolor: 'rgba(26, 115, 232, 0.1)', 
+                borderRadius: '50%',
+                p: 1
+              }}>
+                <ShoppingBagIcon sx={{ color: '#1a73e8' }} />
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                Pending
+              <Typography variant="h6" sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 1 }}>
+                Total Return Orders
               </Typography>
-            </Box>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem', mb: 1 }}>
-                {summaryData.pending_count}
+              <Typography variant="h4" sx={{ fontWeight: 500, mb: 1 }}>
+                {loading ? <CircularProgress size={20} /> : summaryData.total_count}
               </Typography>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
-              <AccessTimeIcon sx={{ color: '#34a853', fontSize: '0.875rem', mr: 0.5 }} />
-              <Typography variant="body2" sx={{ color: '#34a853', fontSize: '0.75rem' }}>
-                {getRelativeTime(lastUpdated)}
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                As of {new Date().toLocaleDateString()}
               </Typography>
             </Box>
           </Paper>
         </Grid>
-
-        <Grid item xs={6} md={3}>
+        
+        <Grid item xs={12} sm={6} md={3}>
           <Paper 
             elevation={0} 
             sx={{ 
-              p: 2, 
+              p: 2,
               borderRadius: 2,
               boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
               border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
+              borderLeft: '4px solid #fbbc04',
+              height: '100%'
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Box 
-                sx={{ 
-                  backgroundColor: 'rgba(52, 168, 83, 0.1)', 
-                  borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 1.5
-                }}
-              >
-                <CheckCircleIcon sx={{ color: '#34a853', fontSize: '1.125rem' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 0, 
+                right: 0, 
+                bgcolor: 'rgba(251, 188, 4, 0.1)', 
+                borderRadius: '50%',
+                p: 1
+              }}>
+                <PendingIcon sx={{ color: '#fbbc04' }} />
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                Completed
+              <Typography variant="h6" sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 1 }}>
+                Pending Returns
               </Typography>
-            </Box>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem', mb: 1 }}>
-                {summaryData.completed_count}
+              <Typography variant="h4" sx={{ fontWeight: 500, mb: 1 }}>
+                {loading ? <CircularProgress size={20} /> : summaryData.pending_count}
               </Typography>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
-              <AccessTimeIcon sx={{ color: '#34a853', fontSize: '0.875rem', mr: 0.5 }} />
-              <Typography variant="body2" sx={{ color: '#34a853', fontSize: '0.75rem' }}>
-                {getRelativeTime(lastUpdated)}
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                Awaiting processing
               </Typography>
             </Box>
           </Paper>
         </Grid>
-
-        <Grid item xs={6} md={3}>
+        
+        <Grid item xs={12} sm={6} md={3}>
           <Paper 
             elevation={0} 
             sx={{ 
-              p: 2, 
+              p: 2,
               borderRadius: 2,
               boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
               border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
+              borderLeft: '4px solid #4285f4',
+              height: '100%'
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Box 
-                sx={{ 
-                  backgroundColor: 'rgba(251, 188, 4, 0.1)', 
-                  borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 1.5
-                }}
-              >
-                <LocalShippingIcon sx={{ color: '#fbbc04', fontSize: '1.125rem' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 0, 
+                right: 0, 
+                bgcolor: 'rgba(66, 133, 244, 0.1)', 
+                borderRadius: '50%',
+                p: 1
+              }}>
+                <SettingsIcon sx={{ color: '#4285f4' }} />
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                Processing
+              <Typography variant="h6" sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 1 }}>
+                Processed Returns
               </Typography>
-            </Box>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem', mb: 1 }}>
-                {summaryData.processing_count}
+              <Typography variant="h4" sx={{ fontWeight: 500, mb: 1 }}>
+                {loading ? <CircularProgress size={20} /> : summaryData.processing_count}
               </Typography>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
-              <AccessTimeIcon sx={{ color: '#34a853', fontSize: '0.875rem', mr: 0.5 }} />
-              <Typography variant="body2" sx={{ color: '#34a853', fontSize: '0.75rem' }}>
-                {getRelativeTime(lastUpdated)}
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                Currently processing
               </Typography>
             </Box>
           </Paper>
         </Grid>
-
-        <Grid item xs={6} md={3}>
+        
+        <Grid item xs={12} sm={6} md={3}>
           <Paper 
             elevation={0} 
             sx={{ 
-              p: 2, 
+              p: 2,
               borderRadius: 2,
               boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
               border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
+              borderLeft: '4px solid #34a853',
+              height: '100%'
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Box 
-                sx={{ 
-                  backgroundColor: 'rgba(234, 67, 53, 0.1)', 
-                  borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 1.5
-                }}
-              >
-                <WarningIcon sx={{ color: '#ea4335', fontSize: '1.125rem' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 0, 
+                right: 0, 
+                bgcolor: 'rgba(52, 168, 83, 0.1)', 
+                borderRadius: '50%',
+                p: 1
+              }}>
+                <CheckIcon sx={{ color: '#34a853' }} />
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                Rejected
+              <Typography variant="h6" sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 1 }}>
+                Completed Returns
               </Typography>
-            </Box>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem', mb: 1 }}>
-                {summaryData.rejected_count}
+              <Typography variant="h4" sx={{ fontWeight: 500, mb: 1 }}>
+                {loading ? <CircularProgress size={20} /> : summaryData.completed_count}
               </Typography>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
-              <AccessTimeIcon sx={{ color: '#34a853', fontSize: '0.875rem', mr: 0.5 }} />
-              <Typography variant="body2" sx={{ color: '#34a853', fontSize: '0.75rem' }}>
-                {getRelativeTime(lastUpdated)}
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                Successfully processed
               </Typography>
             </Box>
           </Paper>
         </Grid>
       </Grid>
-
-      {/* Additional Stats */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%'
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontSize: '1rem', fontWeight: 500 }}>
-              Average Processing Time
-            </Typography>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem' }}>
-                  {summaryData.avg_processing_time !== undefined && summaryData.avg_processing_time !== null
-                    ? summaryData.avg_processing_time.toFixed(1)
-                    : '0.0'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ ml: 1, mb: 0.5 }}>
-                  hours
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%'
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontSize: '1rem', fontWeight: 500 }}>
-              Total Refund Amount
-            </Typography>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-                <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.5rem' }}>
-                  ¥{summaryData.total_refund_amount !== undefined && summaryData.total_refund_amount !== null
-                    ? summaryData.total_refund_amount.toFixed(2)
-                    : '0.00'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ ml: 1, mb: 0.5 }}>
-                  yuan
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
-
+      
       {/* Recent Activity */}
       <Paper 
         elevation={0} 
@@ -496,74 +359,70 @@ const Dashboard: React.FC = () => {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {summaryData.total_count > 0 
                 ? `System has ${summaryData.total_count} return items. Recent activity includes ${summaryData.pending_count} pending and ${summaryData.processing_count} processing items.`
-                : 'No activity data available. Click "Create Test Return" button to generate test data.'
+                : 'No activity data available.'
               }
             </Typography>
             
-            <List>
+            <List sx={{ width: '100%' }}>
               {recentActivity.length > 0 ? (
                 recentActivity.map((activity) => (
-                  <ListItem key={activity.id}>
-                    <ListItemIcon>
-                      {activity.action.includes("New") ? (
-                        <NotificationsActiveIcon color="primary" />
-                      ) : activity.action.includes("processed") ? (
-                        <CheckCircleIcon color="success" />
+                  <ListItem 
+                    key={activity.id}
+                    dense
+                    sx={{ 
+                      borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+                      py: 1,
+                      '&:last-child': { borderBottom: 'none' }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {activity.action.includes('New return') ? (
+                        <LocalShippingIcon fontSize="small" sx={{ color: '#fbbc04' }} />
+                      ) : activity.action.includes('processed') ? (
+                        <CheckCircleIcon fontSize="small" sx={{ color: '#34a853' }} />
                       ) : (
-                        <LocalShippingIcon color="warning" />
+                        <LoopIcon fontSize="small" sx={{ color: '#4285f4' }} />
                       )}
                     </ListItemIcon>
                     <ListItemText 
-                      primary={`${activity.action}${activity.return_id ? ` #${activity.return_id}` : ''}`}
-                      secondary={getRelativeTime(activity.timestamp)}
+                      primary={activity.action}
+                      secondary={`Order #${activity.return_id} - ${getRelativeTime(activity.timestamp)}`}
+                      primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+                      secondaryTypographyProps={{ fontSize: '0.75rem' }}
                     />
                   </ListItem>
                 ))
               ) : (
                 <ListItem>
-                  <ListItemText primary="No recent activity" />
+                  <ListItemText 
+                    primary="No recent activity" 
+                    primaryTypographyProps={{ fontSize: '0.875rem', color: 'text.secondary' }} 
+                  />
                 </ListItem>
               )}
             </List>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+              <Button
+                variant="text"
+                color="primary"
+                endIcon={<ArrowForwardIcon />}
+                onClick={() => navigate('/returns')}
+                sx={{ fontSize: '0.875rem' }}
+              >
+                View All Returns
+              </Button>
+            </Box>
           </>
         )}
       </Paper>
-
-      {/* AI Recommendations */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2, 
-          borderRadius: 2,
-          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-          border: '1px solid rgba(0, 0, 0, 0.08)'
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: 2, fontSize: '1rem', fontWeight: 500 }}>
-          AI Recommendations
-        </Typography>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-            <CircularProgress size={24} />
-          </Box>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            {summaryData.pending_count > 0 
-              ? `You have ${summaryData.pending_count} pending return items that need attention. We recommend prioritizing these to improve customer satisfaction.`
-              : 'No return items requiring immediate attention. System is running smoothly.'
-            }
-          </Typography>
-        )}
-      </Paper>
-
-      {/* Snackbar for notifications */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}
         </Alert>
       </Snackbar>

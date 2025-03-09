@@ -201,19 +201,20 @@ export const authAPI = {
 
 // 退货管理API
 export const returnsAPI = {
-  getReturns: (params?: any) => {
-    console.log('Calling getReturns API with params:', params);
-    console.log('Current baseURL:', API_URL);
-    console.log('Full URL:', `${API_URL}/returns/`);
+  getReturns: (params: any) => {
+    // 构建查询字符串
+    const queryParams = new URLSearchParams();
     
-    // 确保URL末尾有斜杠
-    return apiClient.get('/returns/', { 
-      params,
-      // 添加超时设置
-      timeout: 10000,
-      // 禁用重定向
-      maxRedirects: 0
-    });
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.per_page) queryParams.append('per_page', params.per_page.toString());
+    if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+    if (params.sort_order) queryParams.append('sort_order', params.sort_order);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.status) queryParams.append('status', params.status);
+    
+    const queryString = queryParams.toString();
+    
+    return apiClient.get(`/returns${queryString ? `?${queryString}` : ''}`);
   },
   
   getReturnById: (id: number) => 

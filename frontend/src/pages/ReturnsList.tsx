@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -32,11 +32,27 @@ import {
   ArrowDownward as ArrowDownwardIcon,
   Add as AddIcon
 } from '@mui/icons-material';
-import { returnsAPI, analyticsAPI } from '../services/api';
+import { returnsAPI, analyticsAPI, testAPI } from '../services/api';
 import axios from 'axios';
 
 // API URL
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+
+interface ReturnItem {
+  id: number;
+  order_id: string;
+  customer_email: string;
+  product_name: string;
+  status: string;
+  return_reason: string;
+  created_at: string;
+  ai_analysis?: {
+    category?: string;
+    recommendation?: string;
+    confidence?: number;
+  };
+  [key: string]: any;
+}
 
 const ReturnsList: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -45,7 +61,7 @@ const ReturnsList: React.FC = () => {
   const [returnReason, setReturnReason] = useState('');
   const [status, setStatus] = useState('');
   const [dateRange, setDateRange] = useState('');
-  const [returns, setReturns] = useState<any[]>([]);
+  const [returns, setReturns] = useState<ReturnItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({
@@ -55,10 +71,9 @@ const ReturnsList: React.FC = () => {
     completed_count: 0,
     avg_processing_time: 0
   });
-  const [analyzeLoading, setAnalyzeLoading] = useState(false);
-  const [analyzeSuccess, setAnalyzeSuccess] = useState<string | null>(null);
   
   const navigate = useNavigate();
+  const { status: urlStatus } = useParams<{ status?: string }>();
 
   useEffect(() => {
     // 检查是否有token
@@ -91,14 +106,29 @@ const ReturnsList: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('未找到认证令牌，请先登录');
+        setError('Authentication token not found. Please login first.');
         setLoading(false);
         return;
       }
       
-      // 简化: 只使用最基本的分页参数
-      // 注意: 一些API端点使用page_size而不是limit，page从0开始而不是1
-      // 我们尝试使用最简单的URL，并确保分页参数是正确的
+      // 构建API请求参数，包括状态过滤
+      const params: any = {
+        page: page + 1,
+        limit: rowsPerPage,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+      };
+      
+      // 如果有状态参数，添加到请求中
+      if (status) {
+        params.status = status;
+      }
+      
+      // 如果有搜索查询，添加到请求中
+      if (productCategory || returnReason || dateRange) {
+        params.search = (productCategory || '') + ' ' + (returnReason || '') + ' ' + (dateRange || '');
+      }
+      
       const url = `${API_URL}/returns/`;
       console.log('Fetch URL:', url);
       
@@ -133,14 +163,14 @@ const ReturnsList: React.FC = () => {
       
       // 解析响应数据
       const data = await response.json();
-      console.log('获取到的退货列表数据:', data);
-      console.log('数据示例:', data.length > 0 ? {
-        第一条数据: data[0],
-        AI分析结果: data[0].ai_analysis,
-        建议: data[0].ai_analysis?.recommendation,
-        置信度: data[0].ai_analysis?.confidence,
-        分类: data[0].ai_analysis?.category
-      } : '暂无数据');
+      console.log('Fetched return list data:', data);
+      console.log('Data sample:', data.length > 0 ? {
+        firstItem: data[0],
+        aiAnalysis: data[0].ai_analysis,
+        recommendation: data[0].ai_analysis?.recommendation,
+        confidence: data[0].ai_analysis?.confidence,
+        category: data[0].ai_analysis?.category
+      } : 'No data');
       
       // 处理数据
       if (Array.isArray(data)) {
@@ -154,11 +184,25 @@ const ReturnsList: React.FC = () => {
         });
       } else {
         console.error('Unexpected response format:', data);
-        setError('返回数据格式不正确');
+        setReturns([]);
+        setStats({
+          total_count: 0,
+          pending_count: 0,
+          processing_count: 0,
+          completed_count: 0,
+          avg_processing_time: 0
+        });
       }
     } catch (err: any) {
       console.error('Error fetching returns:', err);
-      setError(`加载退货数据失败: ${err.message}`);
+      setReturns([]);
+      setStats({
+        total_count: 0,
+        pending_count: 0,
+        processing_count: 0,
+        completed_count: 0,
+        avg_processing_time: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -721,562 +765,382 @@ const ReturnsList: React.FC = () => {
     }
   };
 
-  const handleBatchAnalyze = async () => {
-    setAnalyzeLoading(true);
-    setAnalyzeSuccess(null);
+  // 加载退货数据
+  const loadReturns = useCallback(async () => {
+    setLoading(true);
     setError('');
     
     try {
-      const response = await returnsAPI.analyzeAllReturns();
-      console.log('批量分析响应:', response.data);
+      // 构建API请求参数，包括状态过滤
+      const params: any = {
+        page: page + 1,
+        limit: rowsPerPage,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+      };
       
-      if (response.data.success) {
-        setAnalyzeSuccess(`批量分析完成: ${response.data.message}`);
+      // 如果有状态参数，添加到请求中
+      if (status) {
+        params.status = status;
+      }
+      
+      // 如果有搜索查询，添加到请求中
+      if (productCategory || returnReason || dateRange) {
+        params.search = (productCategory || '') + ' ' + (returnReason || '') + ' ' + (dateRange || '');
+      }
+      
+      const response = await returnsAPI.getReturns(params);
+      setReturns(response.data.items);
+      
+      // 添加类型声明以修复错误
+      interface ReturnItem {
+        status: string;
+        [key: string]: any;
+      }
+      
+      setStats({
+        total_count: response.data.total_count,
+        pending_count: response.data.items.filter((r: ReturnItem) => r.status === 'pending').length,
+        processing_count: response.data.items.filter((r: ReturnItem) => r.status === 'processing').length,
+        completed_count: response.data.items.filter((r: ReturnItem) => r.status === 'completed').length,
+        avg_processing_time: 0
+      });
+    } catch (err) {
+      console.error('Error loading returns:', err);
+      setError('Failed to load returns. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, rowsPerPage, productCategory, returnReason, dateRange, status]);
+  
+  // 使用useEffect在参数变化时重新加载数据
+  useEffect(() => {
+    loadReturns();
+  }, [loadReturns]);
+  
+  // 修改页面标题以反映当前过滤状态
+  const getPageTitle = () => {
+    switch (status) {
+      case 'pending':
+        return 'Pending Returns';
+      case 'processing':
+        return 'Processing Returns';
+      case 'completed':
+        return 'Completed Returns';
+      case 'rejected':
+        return 'Rejected Returns';
+      default:
+        return 'All Returns';
+    }
+  };
+
+  // 添加创建测试退货的处理函数
+  const handleCreateTestReturn = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await testAPI.createTestReturn();
+      
+      if (response.data && response.data.success) {
+        // 显示成功消息
+        alert(`Test return created successfully! ID: ${response.data.id}`);
         // 刷新数据
-        fetchReturns();
+        loadReturns();
       } else {
-        setError(`批量分析失败: ${response.data.message}`);
+        setError('Failed to create test return');
       }
     } catch (err: any) {
-      console.error('批量分析失败:', err);
-      setError(`批量分析失败: ${err.message}`);
+      console.error('Error creating test return:', err);
+      setError(`Failed to create test return: ${err.message}`);
     } finally {
-      setAnalyzeLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
-          退货管理
-        </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleBatchAnalyze}
-            sx={{ mr: 2 }}
-            disabled={analyzeLoading}
-          >
-            {analyzeLoading ? <CircularProgress size={24} color="inherit" /> : '批量分析未处理退货'}
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate('/returns/new')}
-            startIcon={<AddIcon />}
-          >
-            创建退货订单
-          </Button>
-        </Box>
+      {/* 移除页面标题，保留调试工具面板 */}
+      <Box 
+        sx={{ 
+          position: 'fixed', 
+          top: 80, 
+          right: 20, 
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          padding: 1,
+          borderRadius: 1,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          border: '1px solid rgba(0,0,0,0.1)'
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Debug Tools</Typography>
+        <Button 
+          variant="outlined" 
+          color="warning" 
+          onClick={handleDebugXHR} 
+          size="small"
+        >
+          Debug API (XHR)
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          color="info" 
+          onClick={handleDebugAltPath} 
+          size="small"
+        >
+          Test Alt Path
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          color="success" 
+          onClick={handleDeepDebug} 
+          size="small"
+        >
+          Deep Debug
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          color="secondary" 
+          onClick={handleCreateTestReturn} 
+          size="small"
+        >
+          Create Test Return
+        </Button>
+        
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={handleReLogin} 
+          size="small"
+        >
+          Re-login for Token
+        </Button>
       </Box>
       
-      {analyzeSuccess && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setAnalyzeSuccess(null)}>
-          {analyzeSuccess}
-        </Alert>
-      )}
+      {/* 继续显示筛选器 */}
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2, 
+          mb: 3,
+          borderRadius: 2,
+          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
+          border: '1px solid rgba(0, 0, 0, 0.08)'
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="product-category-label">Product Category</InputLabel>
+            <Select
+              labelId="product-category-label"
+              value={productCategory}
+              label="Product Category"
+              onChange={(e) => setProductCategory(e.target.value)}
+            >
+              <MenuItem value=""><em>All</em></MenuItem>
+              <MenuItem value="electronics">Electronics</MenuItem>
+              <MenuItem value="clothing">Clothing & Accessories</MenuItem>
+              <MenuItem value="home">Home Goods</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="return-reason-label">Return Reason</InputLabel>
+            <Select
+              labelId="return-reason-label"
+              value={returnReason}
+              label="Return Reason"
+              onChange={(e) => setReturnReason(e.target.value)}
+            >
+              <MenuItem value=""><em>All</em></MenuItem>
+              <MenuItem value="defective">Defective Item</MenuItem>
+              <MenuItem value="not_as_described">Not As Described</MenuItem>
+              <MenuItem value="wrong_item">Wrong Item Received</MenuItem>
+              <MenuItem value="no_longer_needed">No Longer Needed</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="status-label">Status</InputLabel>
+            <Select
+              labelId="status-label"
+              value={status}
+              label="Status"
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <MenuItem value=""><em>All</em></MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="processing">Processing</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="rejected">Rejected</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <TextField
+            label="Search"
+            size="small"
+            placeholder="Order ID, Customer Email..."
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: 220 }}
+          />
+        </Box>
+      </Paper>
       
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
-          {/* 添加调试按钮 */}
-          <Button 
-            variant="outlined" 
-            color="warning" 
-            onClick={handleDebugXHR} 
-            sx={{ mb: 2, mr: 2 }}
-          >
-            调试API(XHR)
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            color="info" 
-            onClick={handleDebugAltPath} 
-            sx={{ mb: 2, mr: 2 }}
-          >
-            测试不同路径
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            color="success" 
-            onClick={handleDeepDebug} 
-            sx={{ mb: 2, mr: 2 }}
-          >
-            深度调试
-          </Button>
-          
-          {/* 重新登录按钮 */}
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleReLogin} 
-            sx={{ mb: 2, mr: 2 }}
-          >
-            重新登录获取令牌
-          </Button>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%'
-            }}
-          >
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              Total Return Orders
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                {stats.total_count}
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  ml: 1, 
-                  mb: 0.5, 
-                  color: '#4CAF50',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <ArrowUpwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
-                5.2%
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%'
-            }}
-          >
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              Pending Returns
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                {stats.pending_count}
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  ml: 1, 
-                  mb: 0.5, 
-                  color: '#F29D12',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <ArrowUpwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
-                8.1%
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%'
-            }}
-          >
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              Processing Returns
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                {stats.processing_count}
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  ml: 1, 
-                  mb: 0.5, 
-                  color: '#2196F3',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <ArrowDownwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
-                3.2%
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2, 
-              borderRadius: 2,
-              boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              height: '100%'
-            }}
-          >
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-              Average Processing Time
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-              <Typography variant="h4" sx={{ fontWeight: 400, fontSize: '1.75rem' }}>
-                {stats.avg_processing_time !== undefined ? stats.avg_processing_time.toFixed(1) : '0.0'} days
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  ml: 1, 
-                  mb: 0.5, 
-                  color: '#4CAF50',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <ArrowDownwardIcon sx={{ fontSize: '0.875rem', mr: 0.25 }} />
-                12%
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-      
-      {/* Recent Returns */}
+      {/* 退货数据表格 */}
       <Paper 
         elevation={0} 
         sx={{ 
           borderRadius: 2,
-          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
-          mb: 3
+          boxShadow: '0 1px 2px 0 rgba(60,64,67,0.1), 0 1px 2px 0 rgba(60,64,67,0.06)'
         }}
       >
-        <Box sx={{ p: 2 }}>
-          {/* Search and Filter */}
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={2.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="product-category-label">Product Category</InputLabel>
-                <Select
-                  labelId="product-category-label"
-                  value={productCategory}
-                  label="Product Category"
-                  onChange={handleProductCategoryChange}
-                  sx={{ fontSize: '0.875rem' }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="electronics">Electronics</MenuItem>
-                  <MenuItem value="clothing">Clothing & Accessories</MenuItem>
-                  <MenuItem value="home">Home Goods</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} md={2.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="return-reason-label">Return Reason</InputLabel>
-                <Select
-                  labelId="return-reason-label"
-                  value={returnReason}
-                  label="Return Reason"
-                  onChange={handleReturnReasonChange}
-                  sx={{ fontSize: '0.875rem' }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="quality">Quality Issues</MenuItem>
-                  <MenuItem value="function">Functionality Issues</MenuItem>
-                  <MenuItem value="damage">Shipping Damage</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} md={2.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="status-label">Status</InputLabel>
-                <Select
-                  labelId="status-label"
-                  value={status}
-                  label="Status"
-                  onChange={handleStatusChange}
-                  sx={{ fontSize: '0.875rem' }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="processing">Processing</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} md={2.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="date-range-label">Date Range</InputLabel>
-                <Select
-                  labelId="date-range-label"
-                  value={dateRange}
-                  label="Date Range"
-                  onChange={handleDateRangeChange}
-                  sx={{ fontSize: '0.875rem' }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="today">Today</MenuItem>
-                  <MenuItem value="week">This Week</MenuItem>
-                  <MenuItem value="month">This Month</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={6} md={1}>
-              <Button 
-                variant="contained" 
-                fullWidth 
-                onClick={handleSearch}
-                sx={{ 
-                  height: '100%',
-                  backgroundColor: '#1a73e8',
-                  fontSize: '0.875rem'
-                }}
-              >
-                Search
-              </Button>
-            </Grid>
-            
-            <Grid item xs={6} md={1}>
-              <Button 
-                variant="outlined" 
-                fullWidth 
-                onClick={handleBatchProcess}
-                sx={{ 
-                  height: '100%',
-                  borderColor: '#1a73e8',
-                  color: '#1a73e8',
-                  fontSize: '0.875rem'
-                }}
-              >
-                Batch Process
-              </Button>
-            </Grid>
-          </Grid>
-          
-          {/* Table */}
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Box sx={{ p: 2, textAlign: 'center', color: 'error.main' }}>
-              {error}
-            </Box>
-          ) : (
-            <TableContainer>
-              <Table sx={{ minWidth: 650 }} size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>订单信息</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>退货原因</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI建议</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>状态</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>金额</TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>操作</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {returns.length > 0 ? (
-                    returns.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        hover
-                        onClick={() => handleRowClick(row.id)}
-                        sx={{ '&:last-child td, &:last-child th': { border: 0 }, cursor: 'pointer' }}
-                      >
-                        <TableCell sx={{ fontSize: '0.8125rem' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Box 
-                              sx={{ 
-                                width: 40, 
-                                height: 40, 
-                                bgcolor: '#f5f5f5', 
-                                borderRadius: 1, 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                mr: 1.5
-                              }}
-                            >
-                              Img
-                            </Box>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
-                                {row.product_name} {row.product_id}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                {row.order_id}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell sx={{ fontSize: '0.8125rem' }}>
-                          {row.return_reason}
-                        </TableCell>
-                        <TableCell>
-                          <Box>
-                            <Chip 
-                              label={row.ai_analysis?.recommendation || '未分析'}
-                              size="small"
-                              sx={{ 
-                                fontSize: '0.75rem',
-                                bgcolor: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).bg : '#f5f5f5',
-                                color: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).color : '#757575',
-                              }}
-                            />
-                            {row.ai_analysis?.confidence !== undefined && (
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                                置信度: {(row.ai_analysis.confidence * 100).toFixed(0)}%
-                              </Typography>
-                            )}
-                            {row.ai_analysis?.category && (
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                                分类: {row.ai_analysis.category}
-                              </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={getStatusText(row.status)}
-                            size="small"
-                            sx={{ 
-                              fontSize: '0.75rem',
-                              bgcolor: getStatusColor(row.status).bg,
-                              color: getStatusColor(row.status).color,
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell sx={{ fontSize: '0.8125rem' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Order Info</TableCell>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Return Reason</TableCell>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>AI Recommendation</TableCell>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Amount</TableCell>
+                <TableCell sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {returns.length > 0 ? (
+                returns.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    hover
+                    onClick={() => handleRowClick(row.id)}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 }, cursor: 'pointer' }}
+                  >
+                    <TableCell sx={{ fontSize: '0.8125rem' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box 
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            bgcolor: '#f5f5f5', 
+                            borderRadius: 1, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            mr: 1.5
+                          }}
+                        >
+                          Img
+                        </Box>
+                        <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
-                            ${row.original_price ? row.original_price.toFixed(2) : '0.00'}
+                            {row.product_name} {row.product_id}
                           </Typography>
-                          {row.resale_price && row.resale_price > 0 && (
-                            <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
-                              Resale: ${row.resale_price.toFixed(2)}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="text" 
-                            size="small"
-                            sx={{ 
-                              fontSize: '0.75rem',
-                              color: '#1a73e8',
-                              minWidth: 'auto'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRowClick(row.id);
-                            }}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 3 }}>
-                        No return items found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-              Showing {returns.length > 0 ? `1-${returns.length}` : '0'} / {stats.total_count} return orders
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Button 
-                variant="outlined" 
-                size="small" 
-                sx={{ 
-                  minWidth: 'auto', 
-                  p: 0.5, 
-                  mr: 1,
-                  borderColor: '#e0e0e0',
-                  color: '#5f6368'
-                }}
-              >
-                1
-              </Button>
-              <Button 
-                variant="text" 
-                size="small" 
-                sx={{ 
-                  minWidth: 'auto', 
-                  p: 0.5, 
-                  mr: 1,
-                  color: '#5f6368'
-                }}
-              >
-                2
-              </Button>
-              <Button 
-                variant="text" 
-                size="small" 
-                sx={{ 
-                  minWidth: 'auto', 
-                  p: 0.5, 
-                  mr: 1,
-                  color: '#5f6368'
-                }}
-              >
-                3
-              </Button>
-              <Button 
-                variant="text" 
-                size="small" 
-                sx={{ 
-                  minWidth: 'auto', 
-                  p: 0.5,
-                  color: '#5f6368'
-                }}
-              >
-                →
-              </Button>
-            </Box>
-          </Box>
-        </Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            {row.order_id}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.8125rem' }}>
+                      {row.return_reason}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Chip 
+                          label={row.ai_analysis?.recommendation || '未分析'}
+                          size="small"
+                          sx={{ 
+                            fontSize: '0.75rem',
+                            bgcolor: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).bg : '#f5f5f5',
+                            color: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).color : '#757575',
+                          }}
+                        />
+                        {row.ai_analysis?.confidence !== undefined && (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                            Confidence: {(row.ai_analysis.confidence * 100).toFixed(0)}%
+                          </Typography>
+                        )}
+                        {row.ai_analysis?.category && (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                            Category: {row.ai_analysis.category}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={getStatusText(row.status)}
+                        size="small"
+                        sx={{ 
+                          fontSize: '0.75rem',
+                          bgcolor: getStatusColor(row.status).bg,
+                          color: getStatusColor(row.status).color,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.8125rem' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
+                        ${row.original_price ? row.original_price.toFixed(2) : '0.00'}
+                      </Typography>
+                      {row.resale_price && row.resale_price > 0 && (
+                        <Typography variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
+                          Resale: ${row.resale_price.toFixed(2)}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="text" 
+                        size="small"
+                        sx={{ 
+                          fontSize: '0.75rem',
+                          color: '#1a73e8',
+                          minWidth: 'auto'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRowClick(row.id);
+                        }}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 3 }}>
+                    No return items found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        
+        {/* 分页控件 */}
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50]}
+          component="div"
+          count={stats.total_count}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </Paper>
     </Box>
   );

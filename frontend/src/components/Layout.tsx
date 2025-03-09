@@ -22,7 +22,10 @@ import {
   Badge,
   Tabs,
   Tab,
-  CircularProgress
+  CircularProgress,
+  TextField,
+  InputAdornment,
+  Chip
 } from '@mui/material';
 import {
   MenuOutlined as MenuIcon,
@@ -35,7 +38,8 @@ import {
   NotificationsOutlined as NotificationsIcon,
   CodeOutlined as CodeIcon,
   QuestionAnswerOutlined as QuestionAnswerIcon,
-  SearchOutlined as SearchIcon
+  SearchOutlined as SearchIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { analyticsAPI } from '../services/api';
@@ -164,11 +168,11 @@ const Layout: React.FC = () => {
   };
 
   const returnMenuItems = [
-    { text: 'Returns Management', icon: <ReplayIcon fontSize="small" />, path: '/returns', active: true, count: null },
-    { text: 'Pending', icon: null, path: '/returns?status=pending', count: summaryData.pending_count },
-    { text: 'Processing', icon: null, path: '/returns?status=processing', count: summaryData.processing_count },
-    { text: 'Completed', icon: null, path: '/returns?status=completed', count: summaryData.completed_count },
-    { text: 'Rejected', icon: null, path: '/returns?status=rejected', count: summaryData.rejected_count, isRed: true },
+    { text: 'All Returns', icon: <ReplayIcon fontSize="small" />, path: '/returns', count: null },
+    { text: 'Pending', icon: null, path: '/returns/status/pending', count: summaryData?.pending_count || 0, chipColor: '#fbbc04' },
+    { text: 'Processing', icon: null, path: '/returns/status/processing', count: summaryData?.processing_count || 0, chipColor: '#4285f4' },
+    { text: 'Completed', icon: null, path: '/returns/status/completed', count: summaryData?.completed_count || 0, chipColor: '#34a853' },
+    { text: 'Rejected', icon: null, path: '/returns/status/rejected', count: summaryData?.rejected_count || 0, chipColor: '#ea4335' },
   ];
 
   const categoryItems = [
@@ -190,52 +194,35 @@ const Layout: React.FC = () => {
         {returnMenuItems.map((item, index) => (
           <ListItem key={item.text} disablePadding sx={{ 
             mb: 0.25,
-            pl: index > 0 ? 1.5 : 0, // 减少子菜单的缩进
+            display: 'block',
+            pl: item.icon ? 0 : 2, // 子菜单缩进
           }}>
-            <ListItemButton 
-              onClick={() => handleNavigation(item.path)}
-              sx={{ 
-                borderRadius: 1,
-                py: 0.6, // 稍微增加垂直内边距
-                px: 1.5, // 增加水平内边距
-                backgroundColor: index === 0 ? 'rgba(66, 133, 244, 0.08)' : 'transparent',
-                color: index === 0 ? '#4285f4' : (item.isRed ? '#ea4335' : '#5f6368'),
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                }
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => navigate(item.path)}
+              sx={{
+                minHeight: item.icon ? 48 : 36,
+                py: item.icon ? 1.5 : 0.5,
+                px: item.icon ? 2.5 : 1,
               }}
             >
-              {item.icon && (
-                <ListItemIcon sx={{ 
-                  minWidth: 30,
-                  color: index === 0 ? '#4285f4' : (item.isRed ? '#ea4335' : '#5f6368')
-                }}>
-                  {item.icon}
-                </ListItemIcon>
-              )}
+              {item.icon && <ListItemIcon sx={{ minWidth: 0, mr: 2 }}>{item.icon}</ListItemIcon>}
               <ListItemText 
                 primary={item.text} 
-                primaryTypographyProps={{ 
-                  fontSize: '0.85rem',
-                  fontWeight: index === 0 ? 500 : 400,
-                  color: item.isRed ? '#ea4335' : (index === 0 ? '#4285f4' : '#5f6368')
-                }} 
+                primaryTypographyProps={{ fontSize: item.icon ? '0.875rem' : '0.8125rem' }}
+                sx={{ opacity: 1 }}
               />
               {item.count !== null && (
-                loading ? (
-                  <CircularProgress size={16} sx={{ color: item.isRed ? '#ea4335' : '#5f6368' }} />
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontSize: '0.75rem', 
-                      color: item.isRed ? '#ea4335' : '#5f6368',
-                      fontWeight: item.isRed ? 500 : 400
-                    }}
-                  >
-                    {item.count}
-                  </Typography>
-                )
+                <Chip 
+                  label={item.count} 
+                  size="small" 
+                  sx={{ 
+                    height: 20, 
+                    fontSize: '0.75rem',
+                    backgroundColor: item.chipColor || '#9e9e9e',
+                    color: '#fff' 
+                  }} 
+                />
               )}
             </ListItemButton>
           </ListItem>
@@ -360,24 +347,10 @@ const Layout: React.FC = () => {
           </IconButton>
           
           {/* Logo and Title */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
-            <Box 
-              component="img" 
-              src="/logo.png" 
-              alt="Logo" 
-              sx={{ 
-                width: 24, 
-                height: 24, 
-                mr: 1,
-                display: 'inline-block',
-                backgroundColor: '#4285f4',
-                borderRadius: '4px'
-              }} 
-            />
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, fontSize: '1.125rem' }}>
-              Gemiturn
-            </Typography>
-          </Box>
+          <img src="/web_logo.png" alt="Logo" style={{ height: 30, marginRight: 10 }} />
+          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 500, fontSize: '1.125rem', mr: 4 }}>
+            Gemiturn
+          </Typography>
           
           {/* Top Navigation Tabs */}
           <Tabs 
@@ -385,6 +358,7 @@ const Layout: React.FC = () => {
             onChange={handleTabChange}
             sx={{ 
               flexGrow: 0,
+              marginLeft: 3,
               marginRight: 2,
               '& .MuiTab-root': {
                 minWidth: 'auto',
@@ -410,31 +384,57 @@ const Layout: React.FC = () => {
           </Tabs>
           
           {/* Search Bar */}
-          <Box 
-            sx={{ 
-              flexGrow: 1, 
-              display: 'flex', 
-              alignItems: 'center',
-              backgroundColor: '#f1f3f4',
-              borderRadius: 2,
-              px: 2,
-              py: 0.5,
-              mx: 2
-            }}
-          >
-            <SearchIcon sx={{ color: '#5f6368', mr: 1 }} />
-            <input
-              placeholder="Search returns, products, orders..."
-              style={{
-                border: 'none',
-                outline: 'none',
-                backgroundColor: 'transparent',
+          <Box sx={{ 
+            flexGrow: 1, 
+            display: 'flex', 
+            justifyContent: 'center',
+            maxWidth: '40%',
+            mx: 'auto'
+          }}>
+            <TextField
+              size="small"
+              placeholder="Search returns..."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
                 width: '100%',
-                fontSize: '0.875rem',
-                color: '#202124'
+                maxWidth: 500,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  backgroundColor: '#f8f9fa',
+                  '&:hover': {
+                    backgroundColor: '#f1f3f4',
+                  },
+                  '& fieldset': {
+                    borderColor: 'transparent',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'transparent',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#1a73e8',
+                  },
+                },
               }}
             />
           </Box>
+          
+          {/* Create Return Order button */}
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            onClick={() => navigate('/returns/new')}
+            startIcon={<AddIcon />}
+            sx={{ mr: 2 }}
+          >
+            Create Return
+          </Button>
           
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Tooltip title="Help">

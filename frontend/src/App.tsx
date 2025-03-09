@@ -15,6 +15,7 @@ import NotFound from 'pages/NotFound';
 import ApiDocumentation from 'pages/ApiDocumentation';
 import CreateReturn from 'pages/CreateReturn';
 import Settings from 'pages/Settings';
+import Help from 'pages/Help';
 
 // Components
 import Layout from 'components/Layout';
@@ -193,17 +194,18 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="returns" element={<ReturnsList />} />
+            <Route path="returns/status/:status" element={<ReturnsList />} />
             <Route path="returns/new" element={<CreateReturn />} />
             <Route path="returns/:id" element={<ReturnDetail />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="api-docs" element={<ApiDocumentation />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="help" element={<Help />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ThemeProvider>
-      <JwtDebugTools />
     </AuthProvider>
   );
 }
