@@ -19,31 +19,31 @@ import {
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
-// 定义退货原因分类
+// Define return reason categories
 const RETURN_CATEGORIES = {
   reasons: [
-    { value: 'quality_issues', label: '质量问题', desc: '产品损坏、功能故障、制造缺陷' },
-    { value: 'size_mismatch', label: '尺寸不合适', desc: '太大/太小、尺寸不准确' },
-    { value: 'appearance', label: '外观差异', desc: '颜色差异、款式与描述不符' },
-    { value: 'performance', label: '性能不达标', desc: '功能不符合预期、性能低于广告宣传' },
-    { value: 'wrong_item', label: '收到错误商品', desc: '完全不同的产品' },
-    { value: 'logistics', label: '物流问题', desc: '运输过程中损坏、包装损坏' },
-    { value: 'changed_mind', label: '客户改变主意', desc: '不再需要、找到替代品' },
-    { value: 'missing_parts', label: '配件缺失', desc: '缺少组件' },
-    { value: 'allergic', label: '过敏/不良反应', desc: '对材料过敏、使用后不适' },
-    { value: 'late_delivery', label: '延迟交付', desc: '显著超出预期交付时间' }
+    { value: 'quality_issues', label: 'quality issues', desc: 'product damaged, function failure, manufacturing defect' },
+    { value: 'size_mismatch', label: 'size mismatch', desc: 'too big/small, inaccurate size' },
+    { value: 'appearance', label: 'appearance difference', desc: 'color difference, style not matching description' },
+    { value: 'performance', label: 'performance not met', desc: 'function not meeting expectations, performance lower than advertised' },
+    { value: 'wrong_item', label: 'received wrong item', desc: 'completely different product' },
+    { value: 'logistics', label: 'logistics problem', desc: 'damage during transportation, damaged packaging' },
+    { value: 'changed_mind', label: 'customer changed mind', desc: 'no longer need, found alternative' },
+    { value: 'missing_parts', label: 'missing parts', desc: 'missing component' },
+    { value: 'allergic', label: 'allergic/adverse reaction', desc: 'allergic to material, uncomfortable after use' },
+    { value: 'late_delivery', label: 'late delivery', desc: 'significantly exceed expected delivery time' }
   ],
   processing: [
-    { value: 'direct_resale', label: '直接转售', desc: '全新未开封产品，可直接再次销售' },
-    { value: 'discounted', label: '折价销售', desc: '轻微瑕疵但功能完好，检查后降价销售' },
-    { value: 'return_supplier', label: '退回供应商', desc: '严重质量问题或批次缺陷，退回制造商' },
-    { value: 'repair_resale', label: '维修后销售', desc: '小问题可修复的产品' },
-    { value: 'parts_recycle', label: '零件回收', desc: '无法修复但有可用组件的产品' },
-    { value: 'charity', label: '慈善捐赠', desc: '功能正常但不适合转售的物品' },
-    { value: 'disposal', label: '环保处理', desc: '无法使用且不可回收的产品' },
-    { value: 'cross_platform', label: '跨平台直接销售', desc: '完好商品可在我们的市场直接销售' },
-    { value: 'bundle', label: '打包销售', desc: '将多个退货商品组合成套装销售' },
-    { value: 'display', label: '转为样品/展示品', desc: '轻微外观问题可用作展示样品' }
+    { value: 'direct_resale', label: 'direct resale', desc: 'new, unopened product, can be resold directly' },
+    { value: 'discounted', label: 'discounted resale', desc: 'slight flaw but functional, check and resell at reduced price' },
+    { value: 'return_supplier', label: 'return to supplier', desc: 'serious quality problem or batch defect, return to manufacturer' },
+    { value: 'repair_resale', label: 'repair and resell', desc: 'product with minor issues that can be repaired' },
+    { value: 'parts_recycle', label: 'parts recycling', desc: 'product with usable components that cannot be repaired' },
+    { value: 'charity', label: 'charity donation', desc: 'functional but not suitable for resale' },
+    { value: 'disposal', label: 'environmental processing', desc: 'product unusable and not recyclable' },
+    { value: 'cross_platform', label: 'cross platform direct sale', desc: 'good product can be sold directly on our market' },
+    { value: 'bundle', label: 'bundle sale', desc: 'combine multiple returned goods into a set for sale' },
+    { value: 'display', label: 'convert to sample/display', desc: 'lightly flawed product can be used as a display sample' }
   ]
 };
 
@@ -54,9 +54,9 @@ const CreateReturn: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
 
-  // 表单状态
+  // Form state
   const [formData, setFormData] = useState({
-    order_id: `ORD-${Date.now()}`, // 使用时间戳生成唯一订单ID
+    order_id: `ORD-${Date.now()}`, // Use timestamp to generate unique order ID
     product_id: '',
     product_name: '',
     product_category: '',
@@ -66,7 +66,7 @@ const CreateReturn: React.FC = () => {
     images: [] as File[]
   });
 
-  // 处理表单输入变化
+  // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -75,7 +75,7 @@ const CreateReturn: React.FC = () => {
     }));
   };
 
-  // 处理图片上传
+  // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newImages = Array.from(e.target.files);
@@ -86,31 +86,31 @@ const CreateReturn: React.FC = () => {
     }
   };
 
-  // 处理表单提交
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
     try {
-      // 获取token
+      // Get token
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('未找到认证令牌');
+        throw new Error('Authentication token not found');
       }
       
-      // 创建 FormData 对象
+      // Create FormData object
       const formDataObj = new FormData();
       formData.images.forEach((image) => {
         formDataObj.append('images', image);
       });
       formDataObj.append('description', formData.customer_description);
       
-      // 使用API_URL常量而不是硬编码URL
+      // Use API_URL constant instead of hardcoded URL
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
       
-      // 发送 AI 分析请求
-      console.log('开始发送 AI 分析请求...');
+      // Send AI analysis request
+      console.log('Starting AI analysis request...');
       console.log('Token:', token);
       const analysisResponse = await fetch(`${API_URL}/gemini/analyze`, {
         method: 'POST',
@@ -120,35 +120,35 @@ const CreateReturn: React.FC = () => {
         body: formDataObj
       });
       
-      console.log('AI 分析响应状态:', analysisResponse.status);
+      console.log('AI analysis response status:', analysisResponse.status);
       let aiAnalysisResult = null;
       if (analysisResponse.ok) {
         const analysisData = await analysisResponse.json();
-        console.log('AI分析结果:', analysisData);
+        console.log('AI analysis result:', analysisData);
         aiAnalysisResult = {
-          category: analysisData.category || '未分类',
-          reason: analysisData.reason || '分析失败',
-          recommendation: analysisData.recommendation || '人工审核',
+          category: analysisData.category || 'Uncategorized',
+          reason: analysisData.reason || 'Not analyzed',
+          recommendation: analysisData.recommendation || 'Manual review',
           confidence: analysisData.confidence || 0.0
         };
         setAiAnalysis(aiAnalysisResult);
       } else {
         const errorText = await analysisResponse.text();
-        console.warn('AI分析失败:', {
+        console.warn('AI analysis failed:', {
           status: analysisResponse.status,
           statusText: analysisResponse.statusText,
           error: errorText
         });
         aiAnalysisResult = {
-          category: '未分类',
-          reason: '分析失败',
-          recommendation: '人工审核',
+          category: 'Uncategorized',
+          reason: 'Not analyzed',
+          recommendation: 'Manual review',
           confidence: 0.0
         };
       }
       
-      // 创建退货订单
-      console.log('开始创建退货订单，AI分析结果:', aiAnalysisResult);
+      // Create return order
+      console.log('Starting to create return order, AI analysis result:', aiAnalysisResult);
       
       const response = await fetch(`${API_URL}/returns/`, {
         method: 'POST',
@@ -169,25 +169,25 @@ const CreateReturn: React.FC = () => {
         })
       });
       
-      console.log('退货订单响应状态:', response.status);
+      console.log('Return order response status:', response.status);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`创建退货订单失败: ${errorText}`);
+        throw new Error(`Failed to create return order: ${errorText}`);
       }
       
       const result = await response.json();
-      console.log('创建退货订单成功:', result);
+      console.log('Return order created successfully:', result);
       
       setSuccess(true);
       
-      // 3秒后跳转到详情页
+      // Redirect to details page after 3 seconds
       setTimeout(() => {
         navigate(`/returns/${result.id}`);
       }, 3000);
       
     } catch (err) {
-      console.error('创建退货订单错误:', err);
-      setError(err instanceof Error ? err.message : '创建退货订单时发生错误');
+      console.error('Error creating return order:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while creating return order');
     } finally {
       setLoading(false);
     }
@@ -197,10 +197,10 @@ const CreateReturn: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          创建退货订单
+          Create Return Order
         </Typography>
         <Button variant="outlined" onClick={() => navigate('/returns')}>
-          返回列表
+          Back to List
         </Button>
       </Box>
 
@@ -212,17 +212,17 @@ const CreateReturn: React.FC = () => {
 
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          退货订单创建成功！正在跳转到详情页...
+          Return order created successfully! Redirecting to details page...
         </Alert>
       )}
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* 基本信息 */}
+          {/* Basic Information */}
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
-                基本信息
+                Basic Information
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
@@ -231,7 +231,7 @@ const CreateReturn: React.FC = () => {
                   <TextField
                     fullWidth
                     required
-                    label="订单编号"
+                    label="Order ID"
                     name="order_id"
                     value={formData.order_id}
                     onChange={handleInputChange}
@@ -241,7 +241,7 @@ const CreateReturn: React.FC = () => {
                   <TextField
                     fullWidth
                     required
-                    label="商品编号"
+                    label="Product ID"
                     name="product_id"
                     value={formData.product_id}
                     onChange={handleInputChange}
@@ -251,7 +251,7 @@ const CreateReturn: React.FC = () => {
                   <TextField
                     fullWidth
                     required
-                    label="商品名称"
+                    label="Product Name"
                     name="product_name"
                     value={formData.product_name}
                     onChange={handleInputChange}
@@ -261,7 +261,7 @@ const CreateReturn: React.FC = () => {
                   <TextField
                     fullWidth
                     required
-                    label="商品类别"
+                    label="Product Category"
                     name="product_category"
                     value={formData.product_category}
                     onChange={handleInputChange}
@@ -271,7 +271,7 @@ const CreateReturn: React.FC = () => {
                   <TextField
                     fullWidth
                     required
-                    label="原始价格"
+                    label="Original Price"
                     name="original_price"
                     type="number"
                     value={formData.original_price}
@@ -285,22 +285,22 @@ const CreateReturn: React.FC = () => {
             </Paper>
           </Grid>
 
-          {/* 退货信息 */}
+          {/* Return Information */}
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
-                退货信息
+                Return Information
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <FormControl fullWidth required>
-                    <InputLabel>退货原因</InputLabel>
+                    <InputLabel>Return Reason</InputLabel>
                     <Select
                       name="return_reason"
                       value={formData.return_reason}
-                      label="退货原因"
+                      label="Return Reason"
                       onChange={(e) => handleInputChange(e as any)}
                     >
                       {RETURN_CATEGORIES.reasons.map(reason => (
@@ -317,22 +317,22 @@ const CreateReturn: React.FC = () => {
                     required
                     multiline
                     rows={4}
-                    label="详细描述"
+                    label="Detailed Description"
                     name="customer_description"
                     value={formData.customer_description}
                     onChange={handleInputChange}
-                    placeholder="请详细描述退货原因和产品问题..."
+                    placeholder="Please describe the return reason and product issues in detail..."
                   />
                 </Grid>
               </Grid>
             </Paper>
           </Grid>
 
-          {/* 图片上传 */}
+          {/* Image Upload */}
           <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
-                上传图片
+                Upload Images
               </Typography>
               <Divider sx={{ mb: 2 }} />
               
@@ -352,11 +352,11 @@ const CreateReturn: React.FC = () => {
                     startIcon={<CloudUploadIcon />}
                     sx={{ mb: 2 }}
                   >
-                    选择图片
+                    Select Images
                   </Button>
                 </label>
                 <Typography variant="body2" color="text.secondary">
-                  支持 JPG、PNG 格式，最多可上传 5 张图片
+                  Supports JPG, PNG formats, up to 5 images
                 </Typography>
 
                 {formData.images.length > 0 && (
@@ -366,7 +366,7 @@ const CreateReturn: React.FC = () => {
                         key={index}
                         component="img"
                         src={URL.createObjectURL(image)}
-                        alt={`上传图片 ${index + 1}`}
+                        alt={`Uploaded image ${index + 1}`}
                         sx={{
                           width: 100,
                           height: 100,
@@ -382,18 +382,18 @@ const CreateReturn: React.FC = () => {
             </Paper>
           </Grid>
 
-          {/* AI 分析结果 */}
+          {/* AI Analysis Results */}
           {aiAnalysis && (
             <Grid item xs={12}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    AI 分析结果
+                    AI Analysis Results
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={4}>
                       <Typography variant="body2" color="text.secondary">
-                        分类
+                        Category
                       </Typography>
                       <Typography variant="body1">
                         {aiAnalysis.category}
@@ -401,7 +401,7 @@ const CreateReturn: React.FC = () => {
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="body2" color="text.secondary">
-                        原因
+                        Reason
                       </Typography>
                       <Typography variant="body1">
                         {aiAnalysis.reason}
@@ -409,7 +409,7 @@ const CreateReturn: React.FC = () => {
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="body2" color="text.secondary">
-                        建议处理方式
+                        Recommended Action
                       </Typography>
                       <Typography variant="body1">
                         {aiAnalysis.recommendation}
@@ -421,7 +421,7 @@ const CreateReturn: React.FC = () => {
             </Grid>
           )}
 
-          {/* 提交按钮 */}
+          {/* Submit Button */}
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <Button
@@ -429,7 +429,7 @@ const CreateReturn: React.FC = () => {
                 onClick={() => navigate('/returns')}
                 disabled={loading}
               >
-                取消
+                Cancel
               </Button>
               <Button
                 type="submit"
@@ -437,7 +437,7 @@ const CreateReturn: React.FC = () => {
                 disabled={loading}
                 startIcon={loading && <CircularProgress size={20} />}
               >
-                {loading ? '提交中...' : '创建退货订单'}
+                {loading ? 'Submitting...' : 'Create Return Order'}
               </Button>
             </Box>
           </Grid>
