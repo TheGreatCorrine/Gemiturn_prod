@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  # 允许手动触发工作流
+  
   workflow_dispatch:
 
 jobs:
@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: '16'
           cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
           
       - name: Install dependencies
         working-directory: frontend
@@ -35,4 +36,4 @@ jobs:
         with:
           folder: frontend/build
           branch: gh-pages
-          clean: true  # 自动清除旧文件 
+          clean: true
