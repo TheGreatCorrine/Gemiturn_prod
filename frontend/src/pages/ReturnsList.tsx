@@ -51,6 +51,7 @@ interface ReturnItem {
     recommendation?: string;
     confidence?: number;
   };
+  image_urls?: string[];
   [key: string]: any;
 }
 
@@ -183,7 +184,7 @@ const ReturnsList: React.FC = () => {
           avg_processing_time: 0
         });
       } else {
-        console.error('Unexpected response format:', data);
+        console.error('Incorrect return data format:', data);
         setReturns([]);
         setStats({
           total_count: 0,
@@ -406,7 +407,7 @@ const ReturnsList: React.FC = () => {
             setReturns(data);
             setLoading(false);
           } else {
-            setError('返回数据格式不正确');
+            setError('Incorrect return data format');
             setLoading(false);
           }
         } catch (e) {
@@ -856,23 +857,18 @@ const ReturnsList: React.FC = () => {
 
   return (
     <Box>
-      {/* Remove page title, keep debugging tool panel */}
-      <Box 
-        sx={{ 
-          position: 'fixed', 
-          top: 80, 
-          right: 20, 
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          padding: 1,
-          borderRadius: 1,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          border: '1px solid rgba(0,0,0,0.1)'
-        }}
-      >
+      {/* Temporarily hide debug tools panel
+      <Box sx={{
+        position: 'fixed',
+        bottom: 20,
+        right: 20,
+        zIndex: 1000,
+        backgroundColor: 'white',
+        padding: 1,
+        borderRadius: 1,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        border: '1px solid rgba(0,0,0,0.1)'
+      }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Debug Tools</Typography>
         <Button 
           variant="outlined" 
@@ -903,24 +899,7 @@ const ReturnsList: React.FC = () => {
         
         <Button 
           variant="outlined" 
-          color="secondary" 
-          onClick={handleCreateTestReturn} 
-          size="small"
-        >
-          Create Test Return
-        </Button>
-        
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleReLogin} 
-          size="small"
-        >
-          Re-login for Token
-        </Button>
-      </Box>
-      
-      {/* Continue to display filter */}
+        */}
       <Paper 
         elevation={0}
         sx={{ 
@@ -1035,10 +1014,24 @@ const ReturnsList: React.FC = () => {
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center',
-                            mr: 1.5
+                            mr: 1.5,
+                            overflow: 'hidden'
                           }}
                         >
-                          Img
+                          {row.image_urls && row.image_urls.length > 0 ? (
+                            <Box
+                              component="img"
+                              src={row.image_urls[0]}
+                              alt="Product"
+                              sx={{ 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            'No Img'
+                          )}
                         </Box>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>

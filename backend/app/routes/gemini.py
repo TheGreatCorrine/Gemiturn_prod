@@ -33,45 +33,52 @@ def test_gemini():
 @bp.route('/analyze', methods=['POST'])
 @jwt_required()
 def analyze_images():
-    """分析退货图片"""
+    """Analyze return images"""
     if 'images' not in request.files:
-        return jsonify({'error': '没有上传图片'}), 400
+        return jsonify({'error': 'No images uploaded'}), 400
         
     images = request.files.getlist('images')
     description = request.form.get('description', '')
     
+    print(f"Received {len(images)} images for analysis")
+    print(f"Description: {description}")
+    
     try:
-        # 读取所有图片数据
+        # Read all image data
         image_data = []
         for image in images:
             image_data.append(image.read())
             
-        # 准备产品信息
+        # Prepare product info
         product_info = {
             'description': description
         }
         
-        # 使用 categorize_return 方法进行分析
+        print(f"Calling categorize_return with {len(image_data)} images")
+        
+        # Use categorize_return method for analysis
         result = gemini_service.categorize_return(
             image_data=image_data,
             description=description,
             product_info=product_info
         )
         
-        # 确保返回的数据包含所需的字段
+        print(f"categorize_return result: {result}")
+        
+        # Ensure the returned data contains required fields
         if not isinstance(result, dict) or not all(key in result for key in ['category', 'reason', 'recommendation', 'confidence']):
             result = {
-                'category': result.get('category', '未分类'),
-                'reason': result.get('reason', '分析失败'),
-                'recommendation': result.get('recommendation', '建议人工审核'),
+                'category': result.get('category', 'Uncategorized'),
+                'reason': result.get('reason', 'Analysis failed'),
+                'recommendation': result.get('recommendation', 'Manual review'),
                 'confidence': result.get('confidence', 0.0)
             }
         
         return jsonify(result)
     except Exception as e:
         return jsonify({
-            'category': '未分类',
-            'reason': f'分析失败: {str(e)}',
-            'recommendation': '建议人工审核',
+            'category': 'Uncategorized',
+            'reason': f'Analysis failed: {str(e)}',
+            'recommendation': 'Manual review',
             'confidence': 0.0
         }) 

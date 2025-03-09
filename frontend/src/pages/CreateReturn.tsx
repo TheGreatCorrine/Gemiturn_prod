@@ -99,7 +99,7 @@ const CreateReturn: React.FC = () => {
         throw new Error('Authentication token not found');
       }
       
-      // Create FormData object
+      // Create FormData object for AI analysis
       const formDataObj = new FormData();
       formData.images.forEach((image) => {
         formDataObj.append('images', image);
@@ -125,12 +125,35 @@ const CreateReturn: React.FC = () => {
       if (analysisResponse.ok) {
         const analysisData = await analysisResponse.json();
         console.log('AI analysis result:', analysisData);
-        aiAnalysisResult = {
-          category: analysisData.category || 'Uncategorized',
-          reason: analysisData.reason || 'Not analyzed',
-          recommendation: analysisData.recommendation || 'Manual review',
-          confidence: analysisData.confidence || 0.0
-        };
+        
+        // Validate AI analysis result
+        const isValidAnalysis = 
+          analysisData && 
+          typeof analysisData === 'object' &&
+          'category' in analysisData && 
+          'reason' in analysisData && 
+          'recommendation' in analysisData && 
+          'confidence' in analysisData;
+        
+        if (isValidAnalysis) {
+          aiAnalysisResult = {
+            category: analysisData.category,
+            reason: analysisData.reason,
+            recommendation: analysisData.recommendation,
+            confidence: typeof analysisData.confidence === 'number' ? 
+              analysisData.confidence : 
+              parseFloat(analysisData.confidence) || 0.0
+          };
+        } else {
+          console.warn('Invalid AI analysis result format:', analysisData);
+          aiAnalysisResult = {
+            category: 'Uncategorized',
+            reason: 'Invalid analysis result format',
+            recommendation: 'Manual review',
+            confidence: 0.0
+          };
+        }
+        
         setAiAnalysis(aiAnalysisResult);
       } else {
         const errorText = await analysisResponse.text();
@@ -150,23 +173,32 @@ const CreateReturn: React.FC = () => {
       // Create return order
       console.log('Starting to create return order, AI analysis result:', aiAnalysisResult);
       
+      // Create FormData for the return order
+      const returnFormData = new FormData();
+      returnFormData.append('order_id', formData.order_id);
+      returnFormData.append('product_id', formData.product_id);
+      returnFormData.append('product_name', formData.product_name);
+      returnFormData.append('product_category', formData.product_category);
+      returnFormData.append('return_reason', formData.return_reason);
+      returnFormData.append('customer_description', formData.customer_description);
+      returnFormData.append('original_price', formData.original_price);
+      
+      // Add AI analysis result
+      if (aiAnalysisResult) {
+        returnFormData.append('ai_analysis', JSON.stringify(aiAnalysisResult));
+      }
+      
+      // Add images
+      formData.images.forEach((image) => {
+        returnFormData.append('images', image);
+      });
+      
       const response = await fetch(`${API_URL}/returns/`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          order_id: formData.order_id,
-          product_id: formData.product_id,
-          product_name: formData.product_name,
-          product_category: formData.product_category,
-          return_reason: formData.return_reason,
-          customer_description: formData.customer_description,
-          original_price: parseFloat(formData.original_price),
-          ai_analysis: aiAnalysisResult
-        })
+        body: returnFormData
       });
       
       console.log('Return order response status:', response.status);

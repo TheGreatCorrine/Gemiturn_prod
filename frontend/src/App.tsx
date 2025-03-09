@@ -140,6 +140,7 @@ const theme = createTheme({
 // };
 
 // Development JWT troubleshooting tools
+/* Temporarily hidden JWT debug tools
 const JwtDebugTools = () => {
   if (process.env.NODE_ENV !== 'development') return null;
   
@@ -180,6 +181,7 @@ const JwtDebugTools = () => {
     </div>
   );
 };
+*/
 
 function App() {
   return (
