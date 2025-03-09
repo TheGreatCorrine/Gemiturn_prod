@@ -158,7 +158,7 @@ const ReturnsList: React.FC = () => {
         }
         
         console.error('Fetch error details:', errorData);
-        throw new Error(`API错误 (${response.status}): ${errorData.message || errorData.msg || response.statusText}`);
+        throw new Error(`API error (${response.status}): ${errorData.message || errorData.msg || response.statusText}`);
       }
       
       // 解析响应数据
@@ -232,7 +232,7 @@ const ReturnsList: React.FC = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null) || { message: response.statusText };
         console.error('Stats API fetch error:', errorData);
-        throw new Error(`统计API错误 (${response.status}): ${errorData.message || response.statusText}`);
+        throw new Error(`Statistics API error (${response.status}): ${errorData.message || response.statusText}`);
       }
       
       // 解析响应数据
@@ -335,29 +335,27 @@ const ReturnsList: React.FC = () => {
   
   const getAIRecommendationStyle = (recommendation: string) => {
     switch (recommendation?.toLowerCase()) {
-      case '直接转售':
       case 'resell':
-      case '直接再次销售':
+      case 'direct resale':
+      case 'direct resell':
         return {
           bg: '#E8F5E9',
           color: '#4CAF50',
         };
-      case '维修后销售':
       case 'repair and sell':
-      case '维修后再销售':
+      case 'repair then sell':
         return {
           bg: '#E3F2FD',
           color: '#2196F3',
         };
-      case '退回供应商':
       case 'return to manufacturer':
-      case '退回制造商':
+      case 'return to supplier':
         return {
           bg: '#FFF3E0',
           color: '#FF9800',
         };
-      case '人工审核':
       case 'manual review':
+      case 'human review':
         return {
           bg: '#FFEBEE',
           color: '#F44336',
@@ -374,27 +372,27 @@ const ReturnsList: React.FC = () => {
     setLoading(true);
     setError('');
     
-    console.log('使用XMLHttpRequest发送请求...');
+    console.log('Using XMLHttpRequest to send request...');
     
-    // 获取token
+    // Get token
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Token不存在');
+      setError('Token does not exist');
       setLoading(false);
       return;
     }
     
-    // 使用原生XMLHttpRequest
+    // Use native XMLHttpRequest
     const xhr = new XMLHttpRequest();
     xhr.open('GET', `${API_URL}/returns/`, true);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json');
     
-    // 设置超时
+    // Set timeout
     xhr.timeout = 10000;
     
-    // 添加事件监听器
+    // Add event listener
     xhr.onload = function() {
       console.log('XHR Response Status:', xhr.status);
       console.log('XHR Response Headers:', xhr.getAllResponseHeaders());
@@ -418,48 +416,47 @@ const ReturnsList: React.FC = () => {
         }
       } else {
         console.error('XHR Error Response:', xhr.responseText);
-        setError(`XHR请求失败: ${xhr.status} ${xhr.statusText}`);
+        setError(`XHR request failed: ${xhr.status} ${xhr.statusText}`);
         setLoading(false);
       }
     };
     
     xhr.onerror = function() {
-      console.error('XHR网络错误');
-      setError('网络请求失败');
+      console.error('XHR request failed');
       setLoading(false);
+      setError('Network request failed');
     };
     
     xhr.ontimeout = function() {
-      console.error('XHR请求超时');
-      setError('请求超时');
-      setLoading(false);
+      console.error('XHR request timed out');
+      setError('Request timed out');
     };
     
-    // 发送请求
+    // Send request
     xhr.send();
-    console.log('XHR请求已发送');
+    console.log('XHR request sent');
   };
 
   const handleDebugAltPath = () => {
     setLoading(true);
     setError('');
     
-    console.log('尝试备用API路径...');
+    console.log('Trying alternative API paths...');
     
-    // 获取token
+    // Get token
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Token不存在');
+      setError('Token does not exist');
       setLoading(false);
       return;
     }
     
-    // 尝试几个不同的API路径格式
-    // 有些API使用复数形式returns，有些用单数return
-    // 有些API在末尾不使用斜杠，有些则需要斜杠
-    // 有些API使用不同的版本路径，如/api/v1/returns
+    // Try different API path formats
+    // Some APIs use plural form returns, some use singular return
+    // Some APIs do not use a slash at the end, some require a slash
+    // Some APIs use different version paths, such as /api/v1/returns
     
-    // 定义返回类型
+    // Define return type
     interface PathTestResult {
       success: boolean;
       path: string;
@@ -468,9 +465,9 @@ const ReturnsList: React.FC = () => {
       error?: string;
     }
     
-    // 创建一个测试函数，将依次尝试不同的路径
+    // Create a test function that will try different paths
     const testPath = (path: string): Promise<PathTestResult> => {
-      console.log(`尝试路径: ${path}`);
+      console.log(`Trying path: ${path}`);
       
       return fetch(path, {
         method: 'GET',
@@ -481,11 +478,11 @@ const ReturnsList: React.FC = () => {
         }
       })
       .then(response => {
-        console.log(`路径 ${path} 响应状态:`, response.status);
+        console.log(`Path ${path} response status:`, response.status);
         
         if (response.ok) {
           return response.json().then(data => {
-            console.log(`路径 ${path} 响应数据:`, data);
+            console.log(`Path ${path} response data:`, data);
             return { success: true, path, data } as PathTestResult;
           });
         }
@@ -493,42 +490,42 @@ const ReturnsList: React.FC = () => {
         return { success: false, path, status: response.status } as PathTestResult;
       })
       .catch(err => {
-        console.error(`路径 ${path} 错误:`, err);
+        console.error(`Path ${path} error:`, err);
         return { success: false, path, error: err.message } as PathTestResult;
       });
     };
     
-    // 待测试的路径列表
+    // List of paths to test
     const pathsToTest = [
-      `${API_URL}/returns`,          // 不带斜杠
-      `${API_URL}/returns/`,         // 带斜杠
-      `${API_URL}/return`,           // 单数形式
-      `${API_URL}/return/`,          // 单数形式+斜杠
-      `${API_URL}/returns`,          // 重复测试
-      `${API_URL}/returns/`          // 重复测试
+      `${API_URL}/returns`,          // without slash
+      `${API_URL}/returns/`,         // with slash
+      `${API_URL}/return`,           // singular form
+      `${API_URL}/return/`,          // singular form + slash
+      `${API_URL}/returns`,          // repeat test
+      `${API_URL}/returns/`          // repeat test
     ];
     
-    // 依次测试所有路径
+    // Test all paths sequentially
     Promise.all(pathsToTest.map(testPath))
       .then((results: PathTestResult[]) => {
-        console.log('所有路径测试结果:', results);
+        console.log('All path test results:', results);
         
-        // 查找成功的路径
+        // Find successful path
         const successResult = results.find(r => r.success);
         
         if (successResult && successResult.data) {
-          console.log(`找到工作的路径: ${successResult.path}`);
+          console.log(`Found working path: ${successResult.path}`);
           setReturns(successResult.data);
           setError('');
         } else {
-          setError('所有API路径都失败');
+          setError('All API paths failed');
         }
         
         setLoading(false);
       })
       .catch(err => {
-        console.error('路径测试失败:', err);
-        setError(`路径测试失败: ${err.message}`);
+        console.error('Path test failed:', err);
+        setError(`Path test failed: ${err.message}`);
         setLoading(false);
       });
   };
@@ -537,49 +534,49 @@ const ReturnsList: React.FC = () => {
     setLoading(true);
     setError('');
     
-    console.log('执行深度调试...');
+    console.log('Executing deep debugging...');
     
-    // 获取token
+    // Get token
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Token不存在');
+      setError('Token does not exist');
       setLoading(false);
       return;
     }
     
-    // 定义不同的请求头组合进行测试
+    // Define different request header combinations for testing
     type HeaderSet = Record<string, string>;
     
     const headerSets: HeaderSet[] = [
-      // 标准头
+      // Standard headers
       {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      // 仅认证头
+      // Only authentication headers
       {
         'Authorization': `Bearer ${token}`
       },
-      // 不同格式的认证头
+      // Different authentication header formats
       {
         'Authorization': `JWT ${token}`,
         'Content-Type': 'application/json'
       },
-      // 带Accept但内容类型不同
+      // Accept but different content type
       {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      // 仅接受文本
+      // Accept only text
       {
         'Authorization': `Bearer ${token}`,
         'Accept': 'text/plain'
       }
     ];
     
-    // 定义调试结果类型
+    // Define debugging result type
     interface DebugResult {
       headers: HeaderSet;
       status: number;
@@ -589,9 +586,9 @@ const ReturnsList: React.FC = () => {
       error?: string;
     }
     
-    // 对每组头进行测试
+    // Test each set of headers
     const testHeaders = async (headers: HeaderSet): Promise<DebugResult> => {
-      console.log('测试请求头:', headers);
+      console.log('Testing request headers:', headers);
       
       try {
         const response = await fetch(`${API_URL}/returns/`, {
@@ -599,17 +596,17 @@ const ReturnsList: React.FC = () => {
           headers
         });
         
-        console.log(`请求头 ${JSON.stringify(headers)} 响应状态:`, response.status);
+        console.log(`Request headers ${JSON.stringify(headers)} response status:`, response.status);
         
         let responseData;
         let responseType = '';
         
         try {
-          // 尝试作为JSON解析
+          // Try to parse as JSON
           responseData = await response.json();
           responseType = 'json';
         } catch (e) {
-          // 如果解析为JSON失败，尝试获取文本
+          // If parsing as JSON fails, try to get text
           try {
             responseData = await response.text();
             responseType = 'text';
@@ -638,43 +635,42 @@ const ReturnsList: React.FC = () => {
       }
     };
     
-    // 测试所有请求头组合
+    // Test all request header combinations
     Promise.all(headerSets.map(testHeaders))
       .then(results => {
-        console.log('所有请求头测试结果:', results);
+        console.log('All request header test results:', results);
         
-        // 查找成功的测试（状态码2xx）
+        // Find successful test (status code 2xx)
         const successResult = results.find(r => r.status >= 200 && r.status < 300);
         
         if (successResult) {
-          console.log('找到有效的请求头配置:', successResult);
+          console.log('Found valid request header configuration:', successResult);
           
           if (successResult.responseType === 'json' && Array.isArray(successResult.response)) {
             setReturns(successResult.response);
             setError('');
           } else {
-            setError(`请求成功但响应格式不是数组: ${typeof successResult.response}`);
+            setError(`Request successful but response format is not an array: ${typeof successResult.response}`);
           }
         } else {
-          // 显示所有错误状态码
+          // Collect error information from all tests
           const errorSummary = results
             .map(r => `${r.status} (${r.statusText})`)
             .join(', ');
           
-          setError(`所有请求头组合测试失败: ${errorSummary}`);
+          setError(`All request header combinations failed: ${errorSummary}`);
           
-          // 尝试检查最常见的错误，查看具体原因
-          const error422 = results.find(r => r.status === 422);
-          if (error422) {
-            console.error('422错误详情:', error422);
-            if (typeof error422.response === 'object' && error422.response) {
-              // 检查是否有错误消息
-              const errorMessages = Object.entries(error422.response)
+          // Try to check the most common errors to see specific reasons
+          if (results.some(r => r.status === 401)) {
+            console.error('401 error details:', results.find(r => r.status === 401));
+            if (typeof results.find(r => r.status === 401)?.response === 'object' && results.find(r => r.status === 401)?.response) {
+              // Check if there are error messages
+              const errorMessages = Object.entries(results.find(r => r.status === 401)?.response)
                 .map(([key, value]) => `${key}: ${value}`)
                 .join(', ');
               
               if (errorMessages) {
-                setError(`验证错误: ${errorMessages}`);
+                setError(`Authentication error: ${errorMessages}`);
               }
             }
           }
@@ -683,40 +679,40 @@ const ReturnsList: React.FC = () => {
         setLoading(false);
       })
       .catch(err => {
-        console.error('深度调试失败:', err);
-        setError(`深度调试失败: ${err.message}`);
+        console.error('Deep debugging failed:', err);
+        setError(`Deep debugging failed: ${err.message}`);
         setLoading(false);
       });
       
-    // 额外测试: 尝试不带认证的简单请求，检查是否是认证问题
+    // Additional test: Try a simple request without authentication to check if it's an authentication issue
     fetch(`${API_URL}/health`)
       .then(response => {
-        console.log('健康检查端点状态:', response.status);
+        console.log('Health check endpoint status:', response.status);
         return response.text();
       })
       .then(data => {
-        console.log('健康检查响应:', data);
+        console.log('Health check response:', data);
       })
       .catch(err => {
-        console.error('健康检查失败:', err);
+        console.error('Health check failed:', err);
       });
   };
 
-  // 添加重新登录函数
+  // Add re-login function
   const handleReLogin = async () => {
     setLoading(true);
     setError('');
     
-    console.log('尝试重新登录获取新令牌...');
+    console.log('Attempting to re-login for new token...');
     
     try {
-      // 登录凭据
+      // Login credentials
       const credentials = {
         username: 'admin',
         password: 'admin123'
       };
       
-      // 发送登录请求
+      // Send login request
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -725,53 +721,53 @@ const ReturnsList: React.FC = () => {
         body: JSON.stringify(credentials)
       });
       
-      console.log('登录响应状态:', response.status);
+      console.log('Login response status:', response.status);
       
       if (!response.ok) {
-        throw new Error(`登录失败 (${response.status}): ${response.statusText}`);
+        throw new Error(`Login failed (${response.status}): ${response.statusText}`);
       }
       
-      // 解析响应
+      // Parse response
       const data = await response.json();
-      console.log('登录响应:', data);
+      console.log('Login response:', data);
       
       if (data.access_token) {
-        // 保存新令牌到本地存储
+        // Save new token to local storage
         localStorage.setItem('token', data.access_token);
-        console.log('已保存新令牌');
+        console.log('New token saved');
         
-        // 解析令牌信息
+        // Parse token information
         try {
           const tokenParts = data.access_token.split('.');
           if (tokenParts.length === 3) {
             const payload = JSON.parse(atob(tokenParts[1]));
-            console.log('新令牌负载:', payload);
-            console.log('新令牌过期时间:', new Date(payload.exp * 1000).toLocaleString());
+            console.log('New token payload:', payload);
+            console.log('New token expiration time:', new Date(payload.exp * 1000).toLocaleString());
           }
         } catch (e) {
-          console.error('解析令牌失败:', e);
+          console.error('Token parsing failed:', e);
         }
         
-        // 使用新令牌重新获取数据
+        // Use new token to re-fetch data
         fetchReturns();
       } else {
-        setError('登录响应中没有令牌');
+        setError('Login response did not contain a token');
       }
     } catch (err: any) {
-      console.error('登录失败:', err);
-      setError(`登录失败: ${err.message}`);
+      console.error('Login failed:', err);
+      setError(`Login failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // 加载退货数据
+  // Load return data
   const loadReturns = useCallback(async () => {
     setLoading(true);
     setError('');
     
     try {
-      // 构建API请求参数，包括状态过滤
+      // Build API request parameters, including status filtering
       const params: any = {
         page: page + 1,
         limit: rowsPerPage,
@@ -779,12 +775,12 @@ const ReturnsList: React.FC = () => {
         sort_order: 'desc',
       };
       
-      // 如果有状态参数，添加到请求中
+      // If there is a status parameter, add it to the request
       if (status) {
         params.status = status;
       }
       
-      // 如果有搜索查询，添加到请求中
+      // If there is a search query, add it to the request
       if (productCategory || returnReason || dateRange) {
         params.search = (productCategory || '') + ' ' + (returnReason || '') + ' ' + (dateRange || '');
       }
@@ -792,7 +788,7 @@ const ReturnsList: React.FC = () => {
       const response = await returnsAPI.getReturns(params);
       setReturns(response.data.items);
       
-      // 添加类型声明以修复错误
+      // Add type declaration to fix error
       interface ReturnItem {
         status: string;
         [key: string]: any;
@@ -813,12 +809,12 @@ const ReturnsList: React.FC = () => {
     }
   }, [page, rowsPerPage, productCategory, returnReason, dateRange, status]);
   
-  // 使用useEffect在参数变化时重新加载数据
+  // Use useEffect to reload data when parameters change
   useEffect(() => {
     loadReturns();
   }, [loadReturns]);
   
-  // 修改页面标题以反映当前过滤状态
+  // Modify page title to reflect current filtering state
   const getPageTitle = () => {
     switch (status) {
       case 'pending':
@@ -834,7 +830,7 @@ const ReturnsList: React.FC = () => {
     }
   };
 
-  // 添加创建测试退货的处理函数
+  // Add function to handle creating a test return
   const handleCreateTestReturn = async () => {
     setLoading(true);
     setError('');
@@ -843,9 +839,9 @@ const ReturnsList: React.FC = () => {
       const response = await testAPI.createTestReturn();
       
       if (response.data && response.data.success) {
-        // 显示成功消息
+        // Show success message
         alert(`Test return created successfully! ID: ${response.data.id}`);
-        // 刷新数据
+        // Refresh data
         loadReturns();
       } else {
         setError('Failed to create test return');
@@ -860,7 +856,7 @@ const ReturnsList: React.FC = () => {
 
   return (
     <Box>
-      {/* 移除页面标题，保留调试工具面板 */}
+      {/* Remove page title, keep debugging tool panel */}
       <Box 
         sx={{ 
           position: 'fixed', 
@@ -924,7 +920,7 @@ const ReturnsList: React.FC = () => {
         </Button>
       </Box>
       
-      {/* 继续显示筛选器 */}
+      {/* Continue to display filter */}
       <Paper 
         elevation={0}
         sx={{ 
@@ -999,7 +995,7 @@ const ReturnsList: React.FC = () => {
         </Box>
       </Paper>
       
-      {/* 退货数据表格 */}
+      {/* Return data table */}
       <Paper 
         elevation={0} 
         sx={{ 
@@ -1060,12 +1056,18 @@ const ReturnsList: React.FC = () => {
                     <TableCell>
                       <Box>
                         <Chip 
-                          label={row.ai_analysis?.recommendation || '未分析'}
+                          label={row.ai_analysis?.recommendation || 'Not Analyzed'}
                           size="small"
                           sx={{ 
                             fontSize: '0.75rem',
                             bgcolor: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).bg : '#f5f5f5',
                             color: row.ai_analysis?.recommendation ? getAIRecommendationStyle(row.ai_analysis.recommendation).color : '#757575',
+                            maxWidth: '100%',
+                            height: 'auto',
+                            '& .MuiChip-label': {
+                              whiteSpace: 'normal',
+                              padding: '4px 8px',
+                            }
                           }}
                         />
                         {row.ai_analysis?.confidence !== undefined && (
@@ -1088,6 +1090,12 @@ const ReturnsList: React.FC = () => {
                           fontSize: '0.75rem',
                           bgcolor: getStatusColor(row.status).bg,
                           color: getStatusColor(row.status).color,
+                          maxWidth: '100%',
+                          height: 'auto',
+                          '& .MuiChip-label': {
+                            whiteSpace: 'normal',
+                            padding: '4px 8px',
+                          }
                         }}
                       />
                     </TableCell>
@@ -1131,7 +1139,7 @@ const ReturnsList: React.FC = () => {
           </Table>
         </TableContainer>
         
-        {/* 分页控件 */}
+        {/* Pagination control */}
         <TablePagination
           rowsPerPageOptions={[10, 25, 50]}
           component="div"

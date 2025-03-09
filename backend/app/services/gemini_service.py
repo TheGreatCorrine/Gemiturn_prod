@@ -145,58 +145,58 @@ class GeminiService(AIServiceInterface):
         return_reason: str,
         images: List[str] = None
     ) -> Dict[str, Any]:
-        """分析退货原因并提供处理建议"""
+        """Analyze return reason and provide handling recommendations"""
         
-        # 构建提示词
+        # Build prompt
         prompt = f"""
-        作为退货分析专家，请分析以下退货情况：
+        As a return analysis expert, please analyze the following return situation:
         
-        商品信息：
-        - 名称：{product_name}
-        - 类别：{product_category}
-        - 退货原因：{return_reason}
-        - 客户描述：{customer_description}
+        Product information:
+        - Name: {product_name}
+        - Category: {product_category}
+        - Return reason: {return_reason}
+        - Customer description: {customer_description}
         
-        请根据以下分类系统进行分析：
+        Please analyze according to the following classification system:
         
-        退货原因分类：
-        1. 质量问题 - 产品损坏、功能故障、制造缺陷
-        2. 尺寸不合适 - 太大/太小、尺寸不准确
-        3. 外观差异 - 颜色差异、款式与描述不符
-        4. 性能不达标 - 功能不符合预期、性能低于广告宣传
-        5. 收到错误商品 - 完全不同的产品
-        6. 物流问题 - 运输过程中损坏、包装损坏
-        7. 客户改变主意 - 不再需要、找到替代品
-        8. 配件缺失 - 缺少组件
-        9. 过敏/不良反应 - 对材料过敏、使用后不适
-        10. 延迟交付 - 显著超出预期交付时间
+        Return reason categories:
+        1. Quality issues - Product damage, functional failure, manufacturing defects
+        2. Size mismatch - Too big/small, inaccurate sizing
+        3. Appearance difference - Color difference, style not matching description
+        4. Performance below expectations - Function not as expected, performance below advertised
+        5. Wrong item received - Completely different product
+        6. Logistics issues - Damaged during transport, packaging damage
+        7. Customer changed mind - No longer needed, found alternative
+        8. Missing accessories - Missing components
+        9. Allergic/adverse reaction - Allergic to materials, discomfort after use
+        10. Delayed delivery - Significantly exceeded expected delivery time
         
-        建议处理方法：
-        1. 直接转售 - 全新未开封产品，可直接再次销售
-        2. 折价销售 - 轻微瑕疵但功能完好，检查后降价销售
-        3. 退回供应商 - 严重质量问题或批次缺陷，退回制造商
-        4. 维修后销售 - 小问题可修复的产品
-        5. 零件回收 - 无法修复但有可用组件的产品
-        6. 慈善捐赠 - 功能正常但不适合转售的物品
-        7. 环保处理 - 无法使用且不可回收的产品
-        8. 跨平台直接销售 - 完好商品可在我们的市场直接销售
-        9. 打包销售 - 将多个退货商品组合成套装销售
-        10. 转为样品/展示品 - 轻微外观问题可用作展示样品
+        Recommended handling methods:
+        1. Direct resale - Brand new unopened product, can be sold directly again
+        2. Discounted sale - Minor flaws but fully functional, sell at reduced price after inspection
+        3. Return to supplier - Serious quality issues or batch defects, return to manufacturer
+        4. Repair and resell - Products with minor issues that can be fixed
+        5. Parts recycling - Products that can't be repaired but have usable components
+        6. Charity donation - Functional items not suitable for resale
+        7. Environmental disposal - Unusable and non-recyclable products
+        8. Cross-platform direct sales - Good condition items that can be sold on our marketplace
+        9. Bundle sales - Combine multiple returned items into package deals
+        10. Convert to sample/display item - Items with minor cosmetic issues can be used as display samples
         
-        请以以下格式返回分析结果（不要使用 Markdown 格式）：
-        {{
-            "category": "退货类别",
-            "reason": "具体原因",
-            "recommendation": "处理建议",
+        Please return the analysis result in the following format (do not use Markdown format):
+        {
+            "category": "Return category",
+            "reason": "Specific reason",
+            "recommendation": "Handling recommendation",
             "confidence": 0.95
-        }}
+        }
         """
         
-        # 调用Gemini API进行分析
+        # Call Gemini API for analysis
         response = self.model.generate_content(prompt)
         
         try:
-            # 清理响应文本，移除 Markdown 格式
+            # Clean response text, remove Markdown formatting
             text = response.text.strip()
             if text.startswith('```'):
                 text = text.split('```')[1]
@@ -204,16 +204,16 @@ class GeminiService(AIServiceInterface):
                     text = text[4:]
             text = text.strip()
             
-            # 解析 JSON 字符串
+            # Parse JSON string
             analysis_result = json.loads(text)
             return analysis_result
             
         except Exception as e:
-            logger.error(f"解析 AI 分析结果失败: {str(e)}")
+            logger.error(f"Failed to parse AI analysis result: {str(e)}")
             return {
-                "category": "未分类",
-                "reason": f"分析失败: {str(e)}",
-                "recommendation": "人工审核",
+                "category": "Uncategorized",
+                "reason": f"Analysis failed: {str(e)}",
+                "recommendation": "Manual review",
                 "confidence": 0.0
             }
     

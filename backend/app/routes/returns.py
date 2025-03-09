@@ -13,23 +13,23 @@ gemini_service = GeminiService()
 @bp.route('/', methods=['GET'])
 @jwt_required()
 def get_returns():
-    """获取退货订单列表"""
+    """Get list of return orders"""
     returns = ReturnItem.query.all()
     return jsonify([item.to_dict() for item in returns])
 
 @bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
 def get_return(id):
-    """获取单个退货订单"""
+    """Get a single return order"""
     return_item = ReturnItem.query.get_or_404(id)
     return jsonify(return_item.to_dict())
 
 @bp.route('/analyze-all', methods=['POST'])
 @jwt_required()
 def analyze_all_returns():
-    """批量分析所有未分析的退货记录"""
+    """Batch analyze all unprocessed return records"""
     try:
-        # 查询所有状态为pending或processing且尚未被AI分析的记录
+        # Query all records with status pending or processing and not yet analyzed
         result = db.session.execute(
             text("""
                 SELECT * FROM return_items 
@@ -39,31 +39,31 @@ def analyze_all_returns():
         )
         unanalyzed_returns = [ReturnItem.query.get(row.id) for row in result.fetchall()]
         
-        # 如果没有未分析的记录，直接返回
+        # If no unanalyzed records found, return directly
         if not unanalyzed_returns:
             return jsonify({
                 'success': True,
-                'message': '没有找到未分析的退货记录',
+                'message': 'No unanalyzed return records found',
                 'analyzed_count': 0
             })
         
-        # 分析每一条记录
+        # Analyze each record
         analyzed_count = 0
         failed_count = 0
         for return_item in unanalyzed_returns:
             try:
-                # 使用Gemini服务进行分析
+                # Use Gemini service for analysis
                 analysis_result = gemini_service.analyze_return(
                     product_name=return_item.product_name,
                     product_category=return_item.product_category,
                     customer_description=return_item.customer_description,
                     return_reason=return_item.return_reason,
-                    images=[]  # 暂不处理图片
+                    images=[]  # Temporary handling of images
                 )
                 
-                # 确保分析结果是有效的JSON格式
+                # Ensure analysis result is valid JSON format
                 if isinstance(analysis_result, dict):
-                    # 检查必要的字段是否存在
+                    # Check if required fields exist
                     required_fields = ['category', 'reason', 'recommendation', 'confidence']
                     if all(field in analysis_result for field in required_fields):
                         return_item.ai_analysis = {
@@ -99,75 +99,77 @@ def analyze_all_returns():
                 }
                 failed_count += 1
         
-        # 提交所有更改
+        # Submit all changes
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': f'成功分析 {analyzed_count} 条退货记录，失败 {failed_count} 条',
+            'message': f'Successfully analyzed {analyzed_count} return records, failed {failed_count}',
             'analyzed_count': analyzed_count,
             'failed_count': failed_count,
             'total_count': analyzed_count + failed_count
         })
     except Exception as e:
         db.session.rollback()
-        print(f"批量分析退货记录失败: {str(e)}")
+        print(f"Batch analysis failed: {str(e)}")
         return jsonify({
             'success': False,
-            'message': f'批量分析退货记录失败: {str(e)}'
+            'message': f'Batch analysis failed: {str(e)}'
         }), 500
 
 @bp.route('/', methods=['POST'])
 @jwt_required()
 def create_return():
-    """创建退货订单"""
+    """Create return order"""
     try:
-        # 检查是否是表单数据（包含图片）或JSON数据
+        # Check if it's form data (contains images) or JSON data
         if request.content_type and request.content_type.startswith('multipart/form-data'):
-            # 处理表单数据
+            # Handle form data
             order_id = request.form.get('order_id')
             product_id = request.form.get('product_id')
             product_name = request.form.get('product_name')
             product_category = request.form.get('product_category')
             return_reason = request.form.get('return_reason')
-            customer_description = request.form.get('customer_description', '')
+            customer_description = request.form.get('customer_description')
             original_price = float(request.form.get('original_price', 0))
             
-            # 获取图片
+            # Get images
             images = []
             if 'images' in request.files:
-                image_files = request.files.getlist('images')
-                for image in image_files:
+                for image in request.files.getlist('images'):
                     images.append(image.read())
                     
-            # 前端传递的AI分析结果
+            # Front-end passed AI analysis result
             ai_analysis = None
         else:
-            # 处理JSON数据
+            # Handle JSON data
             data = request.get_json()
             if not data:
-                return jsonify({'error': '无效的请求数据'}), 400
+                return jsonify({
+                    'success': False,
+                    'message': 'No data provided'
+                }), 400
                 
             order_id = data.get('order_id')
             product_id = data.get('product_id')
             product_name = data.get('product_name')
             product_category = data.get('product_category')
             return_reason = data.get('return_reason')
-            customer_description = data.get('customer_description', '')
+            customer_description = data.get('customer_description')
             original_price = float(data.get('original_price', 0))
             images = []
             
-            # 前端传递的AI分析结果
+            # Front-end passed AI analysis result
             ai_analysis = data.get('ai_analysis')
         
-        # 检查order_id是否已存在，如果存在则生成新的
+        # Check if order_id already exists, if exists generate new one
         if order_id:
             existing_return = ReturnItem.query.filter_by(order_id=order_id).first()
             if existing_return:
-                # 生成新的唯一订单ID
+                # Generate new unique order ID
                 order_id = f"{order_id}-{int(time.time())}"
         
-        # 创建退货订单
+        # Create return order
         return_item = ReturnItem(
             order_id=order_id,
             product_id=product_id,
@@ -175,88 +177,92 @@ def create_return():
             product_category=product_category,
             return_reason=return_reason,
             customer_description=customer_description,
-            original_price=original_price
+            original_price=original_price,
+            status='pending'
         )
         
-        # 如果前端已经传递了AI分析结果，直接使用
+        # If front-end has already passed AI analysis result, use it directly
         if ai_analysis and isinstance(ai_analysis, dict):
             return_item.ai_analysis = {
-                'category': ai_analysis.get('category', '未分类'),
-                'reason': ai_analysis.get('reason', '无具体原因'),
-                'recommendation': ai_analysis.get('recommendation', '人工审核'),
+                'category': ai_analysis.get('category', 'Uncategorized'),
+                'reason': ai_analysis.get('reason', 'Not analyzed'),
+                'recommendation': ai_analysis.get('recommendation', 'Manual review'),
                 'confidence': float(ai_analysis.get('confidence', 0.0))
             }
-        # 否则使用Gemini进行分析
+        # Otherwise use Gemini for analysis
         else:
             try:
-                # 有图片时使用图片分析，否则使用文本分析
+                # Use image analysis if there are images, otherwise use text analysis
                 if images:
-                    # 这里假设有一个单独的API endpoint来处理AI分析
+                    # Here assume there's a separate API endpoint to handle AI analysis
                     analysis_result = None
                 else:
                     analysis_result = gemini_service.analyze_return(
-                        product_name=return_item.product_name,
-                        product_category=return_item.product_category,
-                        customer_description=return_item.customer_description,
-                        return_reason=return_item.return_reason,
+                        product_name=product_name,
+                        product_category=product_category,
+                        customer_description=customer_description,
+                        return_reason=return_reason,
                         images=[]
                     )
                 
-                # 确保分析结果是有效的 JSON 格式
+                # Ensure analysis result is valid JSON format
                 if isinstance(analysis_result, dict):
-                    # 检查必要的字段是否存在
+                    # Check if required fields exist
                     required_fields = ['category', 'reason', 'recommendation', 'confidence']
                     if all(field in analysis_result for field in required_fields):
                         return_item.ai_analysis = {
-                            'category': analysis_result.get('category', '未分类'),
-                            'reason': analysis_result.get('reason', '无具体原因'),
-                            'recommendation': analysis_result.get('recommendation', '人工审核'),
-                            'confidence': float(analysis_result.get('confidence', 0.0))
+                            'category': analysis_result['category'],
+                            'reason': analysis_result['reason'],
+                            'recommendation': analysis_result['recommendation'],
+                            'confidence': float(analysis_result['confidence'])
                         }
                     else:
                         return_item.ai_analysis = {
-                            'category': '未分类',
-                            'reason': '分析结果格式不完整',
-                            'recommendation': '人工审核',
+                            'category': 'Uncategorized',
+                            'reason': 'Analysis result incomplete',
+                            'recommendation': 'Manual review',
                             'confidence': 0.0
                         }
                 else:
                     return_item.ai_analysis = {
-                        'category': '未分类',
-                        'reason': '分析结果格式错误',
-                        'recommendation': '人工审核',
+                        'category': 'Uncategorized',
+                        'reason': 'Analysis result format error',
+                        'recommendation': 'Manual review',
                         'confidence': 0.0
                     }
             except Exception as e:
-                print(f"AI 分析失败: {str(e)}")
+                print(f"Analysis failed: {str(e)}")
                 return_item.ai_analysis = {
-                    'category': '未分类',
-                    'reason': f'分析失败: {str(e)}',
-                    'recommendation': '人工审核',
+                    'category': 'Uncategorized',
+                    'reason': f'Analysis failed: {str(e)}',
+                    'recommendation': 'Manual review',
                     'confidence': 0.0
                 }
         
         db.session.add(return_item)
         db.session.commit()
         
-        return jsonify(return_item.to_dict()), 201
+        return jsonify(return_item.to_dict())
     except Exception as e:
         db.session.rollback()
-        print(f"创建退货订单失败: {str(e)}")
-        return jsonify({'error': f'创建退货订单失败: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'message': f'Failed to create return: {str(e)}'
+        }), 500
 
 @bp.route('/<int:id>', methods=['PATCH'])
 @jwt_required()
 def update_return(id):
-    """更新退货订单"""
+    """Update return order"""
     return_item = ReturnItem.query.get_or_404(id)
     data = request.get_json()
     
+    # Update fields
     for key, value in data.items():
         if hasattr(return_item, key):
             setattr(return_item, key, value)
     
-    # 如果更新了相关字段，重新进行 AI 分析
+    # If updated related fields, re-analyze
     if any(key in data for key in ['product_name', 'product_category', 'return_reason', 'customer_description']):
         try:
             analysis_result = gemini_service.analyze_return(
@@ -264,12 +270,12 @@ def update_return(id):
                 product_category=return_item.product_category,
                 customer_description=return_item.customer_description,
                 return_reason=return_item.return_reason,
-                images=data.get('images', [])
+                images=[]
             )
             
-            # 确保分析结果是有效的 JSON 格式
+            # Ensure analysis result is valid JSON format
             if isinstance(analysis_result, dict):
-                # 检查必要的字段是否存在
+                # Check if required fields exist
                 required_fields = ['category', 'reason', 'recommendation', 'confidence']
                 if all(field in analysis_result for field in required_fields):
                     return_item.ai_analysis = {
@@ -280,26 +286,80 @@ def update_return(id):
                     }
                 else:
                     return_item.ai_analysis = {
-                        'category': '未分类',
-                        'reason': '分析结果格式不完整',
-                        'recommendation': '人工审核',
+                        'category': 'Uncategorized',
+                        'reason': 'Analysis result incomplete',
+                        'recommendation': 'Manual review',
                         'confidence': 0.0
                     }
             else:
                 return_item.ai_analysis = {
-                    'category': '未分类',
-                    'reason': '分析结果格式错误',
-                    'recommendation': '人工审核',
+                    'category': 'Uncategorized',
+                    'reason': 'Analysis result format error',
+                    'recommendation': 'Manual review',
                     'confidence': 0.0
                 }
         except Exception as e:
-            print(f"AI 分析失败: {str(e)}")
+            print(f"Analysis failed: {str(e)}")
             return_item.ai_analysis = {
-                'category': '未分类',
-                'reason': f'分析失败: {str(e)}',
-                'recommendation': '人工审核',
+                'category': 'Uncategorized',
+                'reason': f'Analysis failed: {str(e)}',
+                'recommendation': 'Manual review',
                 'confidence': 0.0
             }
     
     db.session.commit()
-    return jsonify(return_item.to_dict()) 
+    return jsonify(return_item.to_dict())
+
+@bp.route('/<int:id>/analyze', methods=['POST'])
+@jwt_required()
+def analyze_return(id):
+    """Analyze a return order"""
+    return_item = ReturnItem.query.get_or_404(id)
+    
+    try:
+        analysis_result = gemini_service.analyze_return(
+            product_name=return_item.product_name,
+            product_category=return_item.product_category,
+            customer_description=return_item.customer_description,
+            return_reason=return_item.return_reason,
+            images=[]
+        )
+        
+        # Ensure analysis result is valid JSON format
+        if isinstance(analysis_result, dict):
+            # Check if required fields exist
+            required_fields = ['category', 'reason', 'recommendation', 'confidence']
+            if all(field in analysis_result for field in required_fields):
+                return_item.ai_analysis = {
+                    'category': analysis_result['category'],
+                    'reason': analysis_result['reason'],
+                    'recommendation': analysis_result['recommendation'],
+                    'confidence': float(analysis_result['confidence'])
+                }
+            else:
+                return_item.ai_analysis = {
+                    'category': 'Uncategorized',
+                    'reason': 'Analysis result incomplete',
+                    'recommendation': 'Manual review',
+                    'confidence': 0.0
+                }
+        else:
+            return_item.ai_analysis = {
+                'category': 'Uncategorized',
+                'reason': 'Analysis result format error',
+                'recommendation': 'Manual review',
+                'confidence': 0.0
+            }
+        
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Analysis completed successfully',
+            'data': return_item.to_dict()
+        })
+    except Exception as e:
+        print(f"Analysis failed: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Analysis failed: {str(e)}'
+        }), 500 

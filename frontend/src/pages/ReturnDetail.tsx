@@ -356,7 +356,7 @@ const ReturnDetail: React.FC = () => {
             <CardHeader 
               title="AI 分析结果" 
               subheader={returnItem.ai_analysis ? 
-                `置信度: ${(returnItem.ai_analysis.confidence * 100).toFixed(0)}%` : 
+                `Confidence: ${(returnItem.ai_analysis.confidence * 100).toFixed(0)}%` : 
                 '无AI分析结果'}
             />
             <CardContent>
@@ -388,6 +388,20 @@ const ReturnDetail: React.FC = () => {
                       size="small"
                     />
                   </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {returnItem.ai_analysis?.confidence ? 
+                      `Confidence: ${(returnItem.ai_analysis.confidence * 100).toFixed(0)}%` :
+                      ''}
+                    </Typography>
+                  </Grid>
+                  {returnItem.ai_analysis?.category && (
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        Category: {returnItem.ai_analysis.category}
+                      </Typography>
+                    </Grid>
+                  )}
                 </Grid>
               ) : (
                 <Typography variant="body1" color="text.secondary">

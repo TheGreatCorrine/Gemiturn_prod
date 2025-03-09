@@ -2,7 +2,7 @@ from datetime import datetime
 from app.extensions import db
 
 class ReturnItem(db.Model):
-    """退货订单模型"""
+    """Return order model"""
     __tablename__ = 'return_items'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -14,10 +14,10 @@ class ReturnItem(db.Model):
     customer_description = db.Column(db.Text)
     original_price = db.Column(db.Float, nullable=False)
     
-    # AI分析结果
+    # AI analysis results
     ai_analysis = db.Column(db.JSON)
     
-    # 状态跟踪
+    # Status tracking
     status = db.Column(db.String(20), default='pending')  # pending, processing, completed
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
