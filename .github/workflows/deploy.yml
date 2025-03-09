@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  
+
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
         
       - name: Build project
         working-directory: frontend
-        run: npm run build
+        run: CI=false npm run build
         env:
           PUBLIC_URL: /${{ github.event.repository.name }}
         
@@ -36,4 +36,4 @@ jobs:
         with:
           folder: frontend/build
           branch: gh-pages
-          clean: true
+          clean: true 
