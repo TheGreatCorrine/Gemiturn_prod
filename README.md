@@ -19,6 +19,9 @@
 
 A comprehensive AI-powered solution for automating e-commerce product return analysis and processing.
 
+<img width="1220" alt="Screenshot 2025-03-21 at 6 35 09 PM" src="https://github.com/user-attachments/assets/9f6ecc51-864a-4e8b-91be-686cc518c1ab" />
+
+
 ## Overview
 
 Gemiturn leverages **Google's Gemini AI technology** to analyze product returns, identify issues, and recommend optimal processing actions. Built on **Google Cloud Platform (GCP)** with **Google Natural Language Processing (NLP)** tools, the system delivers enterprise-grade performance while following **Google's classic four-color design philosophy**. The system helps e-commerce platforms reduce manual review time, improve accuracy in return handling, and optimize operational costs.
