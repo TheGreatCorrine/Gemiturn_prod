@@ -19,7 +19,8 @@
 
 A comprehensive AI-powered solution for automating e-commerce product return analysis and processing.
 
-<img width="1278" alt="Screenshot 2025-03-21 at 6 42 33 PM" src="https://github.com/user-attachments/assets/8cf81e96-e17a-4ff6-9190-f7cc666990f2" />
+<img width="1275" alt="Screenshot 2025-03-21 at 6 46 42 PM" src="https://github.com/user-attachments/assets/b3d76695-41ad-479e-98a0-ea0bf87836b0" />
+
 
 ## Overview
 
