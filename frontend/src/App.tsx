@@ -128,16 +128,16 @@ const theme = createTheme({
   },
 });
 
-// Temporarily commented out ProtectedRoute component
-// const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-//   const { isAuthenticated } = useAuth();
-//   
-//   if (!isAuthenticated) {
-//     return <Navigate to="/login" replace />;
-//   }
-//   
-//   return <>{children}</>;
-// };
+// Re-enable ProtectedRoute component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
 
 // Development JWT troubleshooting tools
 /* Temporarily hidden JWT debug tools
@@ -192,8 +192,12 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           
-          {/* Using Layout component directly, no need for ProtectedRoute */}
-          <Route path="/" element={<Layout />}>
+          {/* Use ProtectedRoute to protect Layout and all nested routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
             <Route index element={<Dashboard />} />
             <Route path="returns" element={<ReturnsList />} />
             <Route path="returns/status/:status" element={<ReturnsList />} />
