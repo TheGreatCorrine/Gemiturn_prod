@@ -31,3 +31,54 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.env
+.venv/
+.Python
+env.bak/
+venv.bak/
+
+# 包安装文件
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# 日志和数据库
+*.log
+*.sqlite3
+*.db
+
+# 测试和覆盖率报告
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.hypothesis/
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.project
+.pydevproject
+.settings/
+
+# 图像上传目录
+uploads/
+/backend/uploads/
+/backend/app/**/__pycache__/
+/backend/venv/**/__pycache__/
