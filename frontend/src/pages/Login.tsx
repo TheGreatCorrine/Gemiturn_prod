@@ -60,12 +60,32 @@ const Login: React.FC = () => {
   const handleDemoLogin = () => {
     setUsername('admin');
     setPassword('admin123');
-    // Simulate a form submission to trigger the actual login
+    setIsLoading(true);
+    
+    // 模拟登录过程
     setTimeout(() => {
-      document.getElementById('login-form')?.dispatchEvent(
-        new Event('submit', { cancelable: true, bubbles: true })
-      );
-    }, 100);
+      try {
+        // 使用与API返回格式相同的模拟数据
+        const mockResponse = {
+          access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIn0.KpZAGE0OouJKQZS3Hc493pcEiUkLFWocuZJ4iNJNrAA",
+          refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwidHlwZSI6InJlZnJlc2gifQ.5zP8mEYJn3H8AP82wBEuYdjH-9EzK5Q2_C32lP1qvdE",
+          username: "admin"
+        };
+        
+        // 手动存储令牌到localStorage
+        localStorage.setItem('token', mockResponse.access_token);
+        localStorage.setItem('refresh_token', mockResponse.refresh_token);
+        
+        // 导航到主页
+        navigate('/');
+        
+      } catch (err) {
+        console.error('模拟登录出错:', err);
+        setError('登录失败，请重试');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 1000); // 模拟网络延迟
   };
   
   return (
