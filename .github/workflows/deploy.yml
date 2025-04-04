@@ -29,7 +29,7 @@ jobs:
         working-directory: frontend
         run: CI=false npm run build
         env:
-          PUBLIC_URL: /${{ github.event.repository.name }}
+          PUBLIC_URL: /Gemiturn_prod
           REACT_APP_API_URL: https://gemiturn-prod.onrender.com/api
         
       - name: Deploy to GitHub Pages
