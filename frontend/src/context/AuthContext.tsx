@@ -10,11 +10,19 @@ interface User {
   role: string;
 }
 
+// 添加API响应的接口定义
+interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  username: string;
+  [key: string]: any; // 允许其他可能的字段
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, isMockLogin?: boolean, mockData?: LoginResponse | null) => Promise<void>;
   logout: () => void;
 }
 
@@ -132,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   
   // Login function
-  const login = async (username: string, password: string, isMockLogin = false, mockData = null) => {
+  const login = async (username: string, password: string, isMockLogin = false, mockData: LoginResponse | null = null) => {
     setIsLoading(true);
     
     try {
