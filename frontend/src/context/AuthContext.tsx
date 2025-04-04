@@ -132,111 +132,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   
   // Login function
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, isMockLogin = false, mockData = null) => {
+    setIsLoading(true);
+    
     try {
-      console.log('Attempting login with:', { username });
+      let userData;
       
-      // Try to use real API login
-      try {
-        console.log('Using API login');
+      if (isMockLogin && mockData) {
+        console.log("使用模拟登录数据");
+        // 使用提供的模拟数据
+        userData = {
+          token: mockData.access_token,
+          refreshToken: mockData.refresh_token,
+          user: {
+            id: 1,
+            username: mockData.username,
+            email: 'admin@example.com',
+            role: 'admin'
+          }
+        };
+      } else {
+        console.log("调用真实API登录");
+        // 正常API登录流程
         const response = await authAPI.login(username, password);
         
-        console.log('Login response:', response.data);
-        
-        const { access_token, refresh_token, user } = response.data;
-        
-        // Check and validate token format
-        if (!access_token || typeof access_token !== 'string') {
-          console.error('Invalid token format: token is missing or not a string', access_token);
-          throw new Error('Invalid authentication token format');
+        if (!response.data || !response.data.access_token) {
+          throw new Error('Invalid login response');
         }
         
-        // Log the token for debugging (only in development)
-        if (process.env.NODE_ENV === 'development') {
-          console.log('JWT token received:', access_token);
-          if (refresh_token) {
-            console.log('Refresh token received');
+        userData = {
+          token: response.data.access_token,
+          refreshToken: response.data.refresh_token,
+          user: {
+            id: 1,
+            username: response.data.username || username,
+            email: response.data.email || `${username}@example.com`,
+            role: response.data.role || 'user'
           }
-        }
-        
-        // Validate token structure
-        const tokenParts = access_token.split('.');
-        if (tokenParts.length !== 3) {
-          console.error('Invalid token format: token does not have three segments', access_token);
-          throw new Error('Invalid authentication token format: not enough segments');
-        }
-        
-        // Parse token payload for debugging
-        try {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          console.log('Token payload:', payload);
-          
-          // Verify required claims
-          const missingClaims = [];
-          if (!payload.sub) missingClaims.push('sub');
-          if (!payload.exp) missingClaims.push('exp');
-          if (!payload.iat) missingClaims.push('iat');
-          
-          if (missingClaims.length > 0) {
-            console.error(`Token missing required claims: ${missingClaims.join(', ')}`);
-          }
-        } catch (e) {
-          console.error('Error decoding token payload:', e);
-          // Continue anyway - this is just debugging
-        }
-        
-        // Save tokens and setup auth header
-        localStorage.setItem('token', access_token);
-        if (refresh_token) {
-          localStorage.setItem('refresh_token', refresh_token);
-        }
-        axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        console.log('Set Authorization header after login:', axios.defaults.headers.common['Authorization']);
-        
-        setUser(user);
-        setIsAuthenticated(true);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('API login failed:', error);
-        
-        // 仅在开发环境下使用模拟登录作为后备
-        if (process.env.NODE_ENV === 'development' && username === 'admin' && password === 'admin123') {
-          console.warn('Falling back to mock login in development');
-          
-          // 使用与后端相同格式的JWT令牌
-          // 这个token包含了所有必要的字段：sub, exp, iat, type, fresh, jti
-          const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0MTM4NTI2NywianRpIjoiZTI1ZGI0N2UtMzRlMS00YzM4LWE5NDgtYTc5YzFmNWQyZGIwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjEiLCJuYmYiOjE3NDEzODUyNjcsImV4cCI6MTc0MTM4ODg2Nywicm9sZSI6ImFkbWluIn0.Gal0zxUBPf1ayN28H3J63r7ewgbHazGhwsylQBjuy0M';
-          const mockRefreshToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0MTM4NTI2NywianRpIjoiZTI1ZGI0N2UtMzRlMS00YzM4LWE5NDgtYTc5YzFmNWQyZGIwIiwidHlwZSI6InJlZnJlc2giLCJzdWIiOiIxIiwibmJmIjoxNzQxMzg1MjY3LCJleHAiOjE3NDQwMTMyNjcsInJvbGUiOiJhZG1pbiJ9.Gal0zxUBPf1ayN28H3J63r7ewgbHazGhwsylQBjuy0M';
-          
-          // 解析token payload进行验证
-          try {
-            const tokenParts = mockToken.split('.');
-            const payload = JSON.parse(atob(tokenParts[1]));
-            console.log('Mock token payload:', payload);
-          } catch (e) {
-            console.error('Error decoding mock token:', e);
-          }
-          
-          // 保存令牌
-          localStorage.setItem('token', mockToken);
-          localStorage.setItem('refresh_token', mockRefreshToken);
-          // 设置认证头
-          axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
-          console.log('Set mock Authorization header:', axios.defaults.headers.common['Authorization']);
-          
-          setUser(MOCK_USER);
-          setIsAuthenticated(true);
-          setIsLoading(false);
-        } else {
-          // 在生产环境或非管理员用户登录失败时抛出错误
-          throw error;
-        }
+        };
       }
+      
+      // 保存令牌到本地存储
+      localStorage.setItem('token', userData.token);
+      localStorage.setItem('refresh_token', userData.refreshToken);
+      
+      // 更新状态
+      setUser(userData.user);
+      setIsAuthenticated(true);
+      
+      console.log("登录成功，认证状态已更新");
+      
     } catch (error) {
       console.error('Login error:', error);
+      setUser(null);
       setIsAuthenticated(false);
-      setIsLoading(false);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
   

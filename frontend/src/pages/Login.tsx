@@ -58,34 +58,51 @@ const Login: React.FC = () => {
 
   // Temporary login function (for demo only)
   const handleDemoLogin = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setIsLoading(true);
-    
-    // 模拟登录过程
-    setTimeout(() => {
-      try {
-        // 使用与API返回格式相同的模拟数据
-        const mockResponse = {
-          access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIn0.KpZAGE0OouJKQZS3Hc493pcEiUkLFWocuZJ4iNJNrAA",
-          refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwidHlwZSI6InJlZnJlc2gifQ.5zP8mEYJn3H8AP82wBEuYdjH-9EzK5Q2_C32lP1qvdE",
-          username: "admin"
-        };
-        
-        // 手动存储令牌到localStorage
-        localStorage.setItem('token', mockResponse.access_token);
-        localStorage.setItem('refresh_token', mockResponse.refresh_token);
-        
-        // 导航到主页
-        navigate('/');
-        
-      } catch (err) {
-        console.error('模拟登录出错:', err);
-        setError('登录失败，请重试');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 1000); // 模拟网络延迟
+    try {
+      console.log("开始模拟登录过程...");
+      setUsername('admin');
+      setPassword('admin123');
+      setIsLoading(true);
+      
+      // 模拟登录过程
+      setTimeout(() => {
+        try {
+          console.log("生成模拟令牌...");
+          // 使用与API返回格式相同的模拟数据
+          const mockResponse = {
+            access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIn0.KpZAGE0OouJKQZS3Hc493pcEiUkLFWocuZJ4iNJNrAA",
+            refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwidHlwZSI6InJlZnJlc2gifQ.5zP8mEYJn3H8AP82wBEuYdjH-9EzK5Q2_C32lP1qvdE",
+            username: "admin"
+          };
+          
+          console.log("保存令牌到localStorage...");
+          // 手动存储令牌到localStorage
+          localStorage.setItem('token', mockResponse.access_token);
+          localStorage.setItem('refresh_token', mockResponse.refresh_token);
+          
+          // 直接调用AuthContext中的login方法以更新状态
+          console.log("调用login方法更新认证状态...");
+          login(username, password, true, mockResponse).then(() => {
+            console.log("登录成功，正在重定向...");
+            // 确保在回调中导航
+            navigate('/');
+          }).catch(err => {
+            console.error("登录方法调用失败:", err);
+            setError('登录状态更新失败');
+          });
+          
+        } catch (err) {
+          console.error('模拟登录过程出错:', err);
+          setError('登录失败，请重试');
+        } finally {
+          setIsLoading(false);
+        }
+      }, 1000); // 模拟网络延迟
+    } catch (err) {
+      console.error("handleDemoLogin外层错误:", err);
+      setError('登录功能出错');
+      setIsLoading(false);
+    }
   };
   
   return (
