@@ -208,6 +208,13 @@ const Login: React.FC = () => {
               Demo account: admin / admin123
             </Typography>
           </Box>
+          
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', fontStyle: 'italic' }}>
+              Note: Due to budget constraints, the backend may take up to 30 seconds to respond on first login. 
+              We are working on implementing Uptime Robot/Cron-job.org to improve response times.
+            </Typography>
+          </Box>
         </Box>
       </Paper>
     </Container>
