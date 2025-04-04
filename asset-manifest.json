@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Gemiturn_prod/static/css/main.a8edc613.css",
-    "main.js": "/Gemiturn_prod/static/js/main.8e747fbc.js",
+    "main.js": "/Gemiturn_prod/static/js/main.578ca6d8.js",
     "static/js/453.8f9fe1c8.chunk.js": "/Gemiturn_prod/static/js/453.8f9fe1c8.chunk.js",
     "index.html": "/Gemiturn_prod/index.html",
     "main.a8edc613.css.map": "/Gemiturn_prod/static/css/main.a8edc613.css.map",
-    "main.8e747fbc.js.map": "/Gemiturn_prod/static/js/main.8e747fbc.js.map",
+    "main.578ca6d8.js.map": "/Gemiturn_prod/static/js/main.578ca6d8.js.map",
     "453.8f9fe1c8.chunk.js.map": "/Gemiturn_prod/static/js/453.8f9fe1c8.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a8edc613.css",
-    "static/js/main.8e747fbc.js"
+    "static/js/main.578ca6d8.js"
   ]
 }
